@@ -17,10 +17,10 @@ async function main() {
         return;
     }
 
-    const mockTranscription = \`
+    const mockTranscription = `
         Clase de Arquitectura de Software. Tarea: "Entrega de Proyecto Clean Architecture" 
         Fecha: 15 de febrero de 2026. Resumen: Usar interfaces, Testeable, Independencia de DB.
-    \`;
+    `;
 
     try {
         await useCase.execute(mockTranscription, dbId);
