@@ -1,14 +1,14 @@
 "use server"
 
 import { ProcessTranscription } from '@/application/use-cases/ProcessTranscription';
-import { MockLLMProvider } from '@/infrastructure/llm/mockLlmProvider';
+import { GeminiProvider } from '@/infrastructure/llm/GeminiProvider';
 import { NotionClient } from '@/infrastructure/mcp/notionClient';
 
 export async function processAcademicTranscription(transcription: string) {
     console.log('Server Action: Processing transcription');
 
     // In a real app, we would use a Factory or DI container
-    const llm = new MockLLMProvider();
+    const llm = new GeminiProvider();
     const notion = new NotionClient();
     const useCase = new ProcessTranscription(llm, notion);
 
