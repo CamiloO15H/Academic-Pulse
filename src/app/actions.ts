@@ -1,14 +1,13 @@
 "use server"
 
 import { ProcessTranscription } from '@/application/use-cases/ProcessTranscription';
-import { MockLLMProvider } from '@/infrastructure/llm/mockLlmProvider';
+import { GeminiProvider } from '@/infrastructure/llm/GeminiProvider';
 import { NotionClient } from '@/infrastructure/mcp/notionClient';
 
-export async function processAcademicTranscription(transcription: string) {
+export async function processAcademicTranscription(transcription: string, confirmedSubject?: string) {
     console.log('Server Action: Processing transcription');
 
-    // In a real app, we would use a Factory or DI container
-    const llm = new MockLLMProvider();
+    const llm = new GeminiProvider();
     const notion = new NotionClient();
     const useCase = new ProcessTranscription(llm, notion);
 
@@ -18,10 +17,15 @@ export async function processAcademicTranscription(transcription: string) {
     }
 
     try {
-        await useCase.execute(transcription, dbId);
-        return { success: true, message: 'Transcription processed and synced with Notion!' };
+        const result = await useCase.execute(transcription, dbId, confirmedSubject);
+        return {
+            success: result.status === 'SUCCESS',
+            status: result.status,
+            data: result.data,
+            message: result.message
+        };
     } catch (error: any) {
         console.error('Action Error:', error);
-        return { success: false, error: error.message };
+        return { success: false, status: 'ERROR', error: error.message };
     }
 }

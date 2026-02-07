@@ -13,6 +13,33 @@ export class NotionClient {
         });
     }
 
+    async findDatabaseByTitle(title: string): Promise<string | null> {
+        const response = await this.client.search({
+            query: title,
+            filter: { property: 'object', value: 'database' },
+        });
+
+        const database = response.results.find((res: any) =>
+            res.title?.[0]?.plain_text === title && !res.archived
+        );
+
+        return database ? database.id : null;
+    }
+
+    async createSubjectDatabase(subjectName: string, parentPageId: string): Promise<string> {
+        const response = await this.client.databases.create({
+            parent: { page_id: parentPageId },
+            title: [{ text: { content: `${subjectName} - Academic Pulse` } }],
+            properties: {
+                Name: { title: {} },
+                Date: { date: {} },
+                Subject: { select: {} },
+                Description: { rich_text: {} }
+            },
+        });
+        return response.id;
+    }
+
     async createTask(task: AcademicTask, databaseId: string) {
         return await this.client.pages.create({
             parent: { database_id: databaseId },
