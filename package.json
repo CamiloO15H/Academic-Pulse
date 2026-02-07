@@ -1,0 +1,30 @@
+{
+  "name": "academic-pulse",
+  "version": "1.0.0",
+  "description": "Autonomous Academic Automation Platform",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CamiloO15H/academic-pulse.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/CamiloO15H/academic-pulse/issues"
+  },
+  "homepage": "https://github.com/CamiloO15H/academic-pulse#readme",
+  "dependencies": {
+    "@notionhq/client": "^5.9.0",
+    "dotenv": "^17.2.4"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
