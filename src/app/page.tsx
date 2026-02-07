@@ -1,8 +1,8 @@
 "use client"
 
 import React, { useState } from 'react';
-import { Button } from '@/ui/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/ui/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Sparkles, Send, Brain, ScrollText, CheckCircle2, Loader2 } from 'lucide-react';
 import { processAcademicTranscription } from './actions';
 
@@ -21,7 +21,7 @@ export default function Home() {
 
         if (result.success) {
             setStatus('success');
-            setMessage(result.message);
+            setMessage(result.message || 'Procesado con éxito.');
             setTranscription('');
         } else {
             setStatus('error');

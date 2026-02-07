@@ -1,8 +1,8 @@
 "use server"
 
-import { ProcessTranscription } from '../../application/use-cases/ProcessTranscription.js';
-import { MockLLMProvider } from '../../infrastructure/llm/mockLlmProvider.js';
-import { NotionClient } from '../../infrastructure/mcp/notionClient.js';
+import { ProcessTranscription } from '@/application/use-cases/ProcessTranscription';
+import { MockLLMProvider } from '@/infrastructure/llm/mockLlmProvider';
+import { NotionClient } from '@/infrastructure/mcp/notionClient';
 
 export async function processAcademicTranscription(transcription: string) {
     console.log('Server Action: Processing transcription');
