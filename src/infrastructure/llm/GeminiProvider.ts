@@ -6,9 +6,13 @@ export class GeminiProvider implements LLMProvider {
     private model: any;
 
     constructor() {
-        const apiKey = process.env.GOOGLE_API_KEY || '';
+        const apiKey = process.env.GOOGLE_API_KEY;
+        if (!apiKey) {
+            console.error('CRITICAL: GOOGLE_API_KEY is missing from environment variables');
+            throw new Error('GOOGLE_API_KEY is not defined in the environment.');
+        }
         this.genAI = new GoogleGenerativeAI(apiKey);
-        this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+        this.model = this.genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
     }
 
     async generate(prompt: string, systemPrompt?: string): Promise<LLMResponse> {
