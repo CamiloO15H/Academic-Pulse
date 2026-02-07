@@ -1,4 +1,4 @@
-import type { LLMProvider, LLMResponse } from '../../application/agents/llmProvider.js';
+import type { LLMProvider, LLMResponse } from '@/application/agents/llmProvider';
 
 export class MockLLMProvider implements LLMProvider {
     async generate(prompt: string, systemPrompt?: string): Promise<LLMResponse> {

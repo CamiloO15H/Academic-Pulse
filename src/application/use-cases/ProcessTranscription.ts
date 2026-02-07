@@ -1,7 +1,7 @@
-import type { LLMProvider } from '../agents/llmProvider.js';
-import { NotionClient } from '../../infrastructure/mcp/notionClient.js';
-import { SYSTEM_PROMPT } from '../agents/prompts.js';
-import type { AcademicTask } from '../../domain/entities/AcademicTask.js';
+import { LLMProvider } from '@/application/agents/llmProvider';
+import { NotionClient } from '@/infrastructure/mcp/notionClient';
+import { SYSTEM_PROMPT } from '@/application/agents/prompts';
+import { AcademicTask } from '@/domain/entities/AcademicTask';
 
 export class ProcessTranscription {
     constructor(

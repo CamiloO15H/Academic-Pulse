@@ -1,6 +1,6 @@
-import { ProcessTranscription } from '../application/use-cases/ProcessTranscription.js';
-import { MockLLMProvider } from '../infrastructure/llm/mockLlmProvider.js';
-import { NotionClient } from '../infrastructure/mcp/notionClient.js';
+import { ProcessTranscription } from '@/application/use-cases/ProcessTranscription';
+import { MockLLMProvider } from '@/infrastructure/llm/mockLlmProvider';
+import { NotionClient } from '@/infrastructure/mcp/notionClient';
 import * as dotenv from 'dotenv';
 
 dotenv.config();

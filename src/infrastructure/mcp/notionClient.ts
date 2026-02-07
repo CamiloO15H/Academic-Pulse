@@ -1,6 +1,6 @@
 import { Client } from '@notionhq/client';
 import * as dotenv from 'dotenv';
-import type { AcademicTask } from '../../domain/entities/AcademicTask.js';
+import { AcademicTask } from '@/domain/entities/AcademicTask';
 
 dotenv.config();
 
@@ -25,7 +25,7 @@ export class NotionClient {
                 },
                 Description: {
                     rich_text: [
-                        { text: { content: `${task.summary.map(s => `• ${s}`).join('\n')}\n\n${task.description}` } }
+                        { text: { content: `${task.summary.map(s => `• ${s}`).join('\n')} \n\n${task.description} ` } }
                     ],
                 },
                 ...(task.dueDate && {

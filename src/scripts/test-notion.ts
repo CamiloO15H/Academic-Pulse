@@ -1,4 +1,5 @@
-import { NotionClient } from '../infrastructure/mcp/notionClient.js';
+import { NotionClient } from '@/infrastructure/mcp/notionClient';
+import { AcademicTask } from '@/domain/entities/AcademicTask';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
