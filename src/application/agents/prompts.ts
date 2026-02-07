@@ -1,4 +1,4 @@
-export const SYSTEM_PROMPT = \`
+export const SYSTEM_PROMPT = `
 You are an advanced Academic Assistant. Your task is to analyze class transcriptions and extract key academic information.
 
 Extract the following entities in JSON format:
@@ -9,4 +9,4 @@ Extract the following entities in JSON format:
 5. Description: A brief context or detailed instruction for the task.
 
 Output MUST be a valid JSON object.
-\`;
+`;
