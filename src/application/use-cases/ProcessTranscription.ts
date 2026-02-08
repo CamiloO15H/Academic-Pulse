@@ -34,28 +34,9 @@ export class ProcessTranscription {
 
         console.log(`Detected Subject: ${subject} (${extractedData.confidence}%)`);
 
-        // Find or use default database
-        let targetDbId = defaultDatabaseId;
-        const dbTitle = `${subject} - Academic Pulse`;
-        const exists = await this.notionClient.findDatabaseByTitle(dbTitle);
-
-        if (exists) {
-            targetDbId = exists;
-            console.log(`Using existing database for ${subject}: ${targetDbId}`);
-        } else {
-            console.log(`Database for ${subject} not found. Attempting to create one...`);
-            const parentPageId = process.env.NOTION_PARENT_PAGE_ID;
-            if (parentPageId) {
-                targetDbId = await this.notionClient.createSubjectDatabase(subject, parentPageId);
-                console.log(`Created new database for ${subject}: ${targetDbId}`);
-            } else {
-                console.warn('NOTION_PARENT_PAGE_ID missing. Falling back to default database.');
-            }
-        }
-
         const task: AcademicTask = {
             title: extractedData.title,
-            subject: extractedData.subject,
+            subject: subject,
             description: extractedData.description,
             summary: extractedData.summary || []
         };
@@ -65,7 +46,8 @@ export class ProcessTranscription {
         }
 
         console.log('--- Syncing with Notion ---');
-        await this.notionClient.createTask(task, targetDbId);
+        // Use defaultDatabaseId which is NOTION_DATABASE_ID from actions.ts
+        await this.notionClient.createTask(task, defaultDatabaseId);
         console.log('--- Process completed successfully ---');
 
         return { status: 'SUCCESS', message: 'Procesado y sincronizado con éxito.' };

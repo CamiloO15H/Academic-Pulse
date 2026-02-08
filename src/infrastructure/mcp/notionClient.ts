@@ -15,50 +15,26 @@ export class NotionClient {
 
     private normalizeSubject(subject: string): string {
         const lower = subject.toLowerCase();
+        // Standardize common variations
         if (lower.includes('metodología') || lower.includes('investigación') || lower.includes('seminario')) {
             return 'Metodología y Seminario de Investigación';
         }
-        return subject;
+        if (lower.includes('arquitectura')) return 'Arquitectura de Computadores';
+        if (lower.includes('base de datos') || lower.includes('bd')) return 'Bases de Datos';
+        if (lower.includes('gestión')) return 'Gestión Académica';
+
+        // Default: Title Case
+        return subject.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
     }
 
-    async findDatabaseByTitle(title: string): Promise<string | null> {
-        const normalizedTitle = this.normalizeSubject(title);
-        const searchTitle = `${normalizedTitle} - Academic Pulse`;
+    async createTask(task: AcademicTask, databaseId?: string) {
+        // Use provided ID or fallback to env
+        const targetId = databaseId || process.env.NOTION_DATABASE_ID;
 
-        const response = await this.client.search({
-            query: searchTitle,
-        });
+        if (!targetId) {
+            throw new Error('NOTION_DATABASE_ID is not defined in environment variables.');
+        }
 
-        const database = response.results.find((res: any) =>
-            res.title?.[0]?.plain_text === searchTitle && !res.archived
-        );
-
-        return database ? database.id : null;
-    }
-
-    async createSubjectDatabase(subjectName: string, parentPageId: string): Promise<string> {
-        const normalized = this.normalizeSubject(subjectName);
-        const title = `${normalized} - Academic Pulse`;
-
-        // Step 1: Create the database with the core schema immediately
-        // Simplify to just Name for creation if update is more stable, 
-        // but user asked for "Simple" so we'll try a balance.
-        const response = await this.client.databases.create({
-            parent: { type: 'page_id', page_id: parentPageId },
-            title: [{ text: { content: title } }],
-            properties: {
-                Name: { title: {} },
-                Date: { date: {} },
-                Subject: { select: {} },
-                Description: { rich_text: {} }
-            }
-        } as any);
-
-        console.log(`Created new database: ${title} (${response.id})`);
-        return response.id;
-    }
-
-    async createTask(task: AcademicTask, databaseId: string) {
         const normalizedSubject = this.normalizeSubject(task.subject);
 
         try {
@@ -68,7 +44,7 @@ export class NotionClient {
             }
 
             return await this.client.pages.create({
-                parent: { database_id: databaseId },
+                parent: { database_id: targetId },
                 properties: {
                     Name: {
                         title: [{ text: { content: task.title } }],
@@ -89,10 +65,7 @@ export class NotionClient {
                 },
             } as any);
         } catch (error: any) {
-            if (error.message?.includes('property that exists')) {
-                console.log('⚠️ Notion schema latency detected.');
-                throw new Error(`¡Base de datos preparada! Por favor, espera 10 segundos y vuelve a procesar para que Notion sincronice los cambios.`);
-            }
+            console.error('Notion Task Creation Error:', error.message);
             throw error;
         }
     }
