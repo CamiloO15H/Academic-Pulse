@@ -49,8 +49,6 @@ export class NotionClient {
         } as any);
 
         // Step 3: Wait for consistency (Notion API lag)
-        // Step 3: Wait for consistency (Notion API lag)
-        // Step 3: Wait for consistency (Notion API lag)
         console.log(`Verifying properties for ${databaseId}...`);
 
         // Wait first to give Notion time
@@ -103,7 +101,15 @@ export class NotionClient {
             return await createPage();
         } catch (error: any) {
             if (error.message?.includes('property that exists')) {
-                console.log('⚠️ Missing properties detected. Attempting auto-repair...');
+                console.log('⚠️ Missing properties detected.');
+
+                try {
+                    const dbCheck = await this.client.databases.retrieve({ database_id: databaseId }) as any;
+                    const props = Object.keys(dbCheck.properties || {});
+                    console.log(`Current DB properties: ${props.join(', ')}`);
+                } catch (e) { }
+
+                console.log('Attempting auto-repair...');
 
                 // Auto-repair: Add the missing columns
                 await this.client.databases.update({
@@ -115,7 +121,10 @@ export class NotionClient {
                     }
                 } as any);
 
-                console.log('✅ Database schema repaired. Retrying task creation...');
+                console.log('✅ Database schema update requested. Waiting 3s for Notion latency...');
+                await new Promise(resolve => setTimeout(resolve, 3000));
+
+                console.log('Retrying task creation...');
                 return await createPage();
             }
             throw error;
