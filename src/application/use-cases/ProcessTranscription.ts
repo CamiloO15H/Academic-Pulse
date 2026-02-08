@@ -37,12 +37,13 @@ export class ProcessTranscription {
         const task: AcademicTask = {
             title: extractedData.title,
             subject: subject,
+            type: extractedData.type || 'Tarea',
             description: extractedData.description,
             summary: extractedData.summary || []
         };
 
-        if (extractedData.dueDate) {
-            task.dueDate = new Date(extractedData.dueDate);
+        if (extractedData.deadline) {
+            task.deadline = new Date(extractedData.deadline);
         }
 
         console.log('--- Syncing with Notion ---');

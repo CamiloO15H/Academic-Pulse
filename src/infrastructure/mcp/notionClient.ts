@@ -52,14 +52,20 @@ export class NotionClient {
                     Subject: {
                         select: { name: normalizedSubject },
                     },
+                    Type: {
+                        select: { name: task.type },
+                    },
+                    Status: {
+                        status: { name: 'Not started' },
+                    },
                     Description: {
                         rich_text: [
                             { text: { content: fullDescription } }
                         ],
                     },
-                    ...(task.dueDate && {
-                        Date: {
-                            date: { start: task.dueDate.toISOString() },
+                    ...(task.deadline && {
+                        Deadline: {
+                            date: { start: task.deadline.toISOString() },
                         },
                     }),
                 },
