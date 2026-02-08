@@ -27,7 +27,6 @@ export class NotionClient {
 
         const response = await this.client.search({
             query: searchTitle,
-            filter: { property: 'object', value: 'database' }
         });
 
         const database = response.results.find((res: any) =>
