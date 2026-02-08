@@ -11,6 +11,7 @@
     "test:full": "tsx src/scripts/test-full-flow.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@notionhq/client": "^5.9.0",
     "@radix-ui/react-slot": "^1.2.4",
     "class-variance-authority": "^0.7.1",

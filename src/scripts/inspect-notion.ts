@@ -7,13 +7,18 @@ async function checkNotionStructure() {
         auth: process.env.NOTION_API_KEY,
     });
 
-    const dbId = process.env.NOTION_DATABASE_ID;
-    console.log('Checking database:', dbId);
+    const id = 'cfd553ffc2694ec09626d6e4b5d6d94a';
+    console.log('Inspecting Database:', id);
 
     try {
-        const response = await notion.databases.retrieve({ database_id: dbId! });
+        const response: any = await notion.databases.retrieve({ database_id: id });
         console.log('Database Title:', response.title[0]?.plain_text);
-        console.log('Parent Information:', JSON.stringify(response.parent, null, 2));
+        if (response.properties) {
+            console.log('Property Keys:', Object.keys(response.properties));
+            console.log('Full Properties JSON:', JSON.stringify(response.properties, null, 2));
+        } else {
+            console.log('Properties object is missing/empty');
+        }
     } catch (error: any) {
         console.error('Error:', error.message);
     }

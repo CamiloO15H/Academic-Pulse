@@ -3,6 +3,7 @@ export const SYSTEM_PROMPT = `CORE REQUIREMENTS:
 2. CONFIDENCE SCORE: Estimate your confidence in the subject detection (0-100).
 3. EXPRESS STUDY PLAN: Generate exactly 3 actionable steps to master the topic.
 4. HIERARCHICAL SUMMARY: Structure the summary section as Key Concepts, Details, and Next Steps.
+5. CONCISENESS: Ensure the total length of summary + description does NOT exceed 1800 characters. Be direct and punchy.
 
 OUTPUT SPECIFICATIONS:
 You MUST output a valid JSON object with this exact structure:
