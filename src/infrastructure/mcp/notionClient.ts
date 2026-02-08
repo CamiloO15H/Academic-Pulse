@@ -13,62 +13,56 @@ export class NotionClient {
         });
     }
 
+    private normalizeSubject(subject: string): string {
+        const lower = subject.toLowerCase();
+        if (lower.includes('metodología') || lower.includes('investigación') || lower.includes('seminario')) {
+            return 'Metodología y Seminario de Investigación';
+        }
+        return subject;
+    }
+
     async findDatabaseByTitle(title: string): Promise<string | null> {
+        const normalizedTitle = this.normalizeSubject(title);
+        const searchTitle = `${normalizedTitle} - Academic Pulse`;
+
         const response = await this.client.search({
-            query: title,
+            query: searchTitle,
+            filter: { property: 'object', value: 'database' }
         });
 
         const database = response.results.find((res: any) =>
-            res.title?.[0]?.plain_text === title && !res.archived
+            res.title?.[0]?.plain_text === searchTitle && !res.archived
         );
 
         return database ? database.id : null;
     }
 
     async createSubjectDatabase(subjectName: string, parentPageId: string): Promise<string> {
-        // Step 1: Create the database with just the title
-        const createResponse = await this.client.databases.create({
+        const normalized = this.normalizeSubject(subjectName);
+        const title = `${normalized} - Academic Pulse`;
+
+        // Step 1: Create the database with the core schema immediately
+        // Simplify to just Name for creation if update is more stable, 
+        // but user asked for "Simple" so we'll try a balance.
+        const response = await this.client.databases.create({
             parent: { type: 'page_id', page_id: parentPageId },
-            title: [{ text: { content: `${subjectName} - Academic Pulse` } }],
+            title: [{ text: { content: title } }],
             properties: {
-                Name: { title: {} }
-            }
-        } as any);
-
-        const databaseId = createResponse.id;
-        console.log(`Database created (${databaseId}). Adding properties...`);
-
-        // Step 2: Update the schema to add other columns
-        await this.client.databases.update({
-            database_id: databaseId,
-            properties: {
+                Name: { title: {} },
                 Date: { date: {} },
                 Subject: { select: {} },
                 Description: { rich_text: {} }
             }
         } as any);
 
-        // Step 3: Wait for consistency (Notion API lag)
-        console.log(`Verifying properties for ${databaseId}...`);
-
-        // Wait first to give Notion time
-        await new Promise(resolve => setTimeout(resolve, 3000));
-
-        try {
-            const dbCheck = await this.client.databases.retrieve({ database_id: databaseId }) as any;
-            const properties = dbCheck.properties || {};
-            const props = Object.keys(properties);
-            console.log(`Properties found: ${props.join(', ')}`);
-        } catch (e) {
-            console.log(`Error verifying DB properties:`, e);
-        }
-
-        return databaseId;
+        console.log(`Created new database: ${title} (${response.id})`);
+        return response.id;
     }
 
     async createTask(task: AcademicTask, databaseId: string) {
-        // Helper function to create the page payload
-        const createPage = async () => {
+        const normalizedSubject = this.normalizeSubject(task.subject);
+
+        try {
             let fullDescription = `${task.summary.map(s => `• ${s}`).join('\n')} \n\n${task.description} `;
             if (fullDescription.length > 2000) {
                 fullDescription = fullDescription.substring(0, 1997) + '...';
@@ -81,7 +75,7 @@ export class NotionClient {
                         title: [{ text: { content: task.title } }],
                     },
                     Subject: {
-                        select: { name: task.subject },
+                        select: { name: normalizedSubject },
                     },
                     Description: {
                         rich_text: [
@@ -95,37 +89,10 @@ export class NotionClient {
                     }),
                 },
             } as any);
-        };
-
-        try {
-            return await createPage();
         } catch (error: any) {
             if (error.message?.includes('property that exists')) {
-                console.log('⚠️ Missing properties detected.');
-
-                try {
-                    const dbCheck = await this.client.databases.retrieve({ database_id: databaseId }) as any;
-                    const props = Object.keys(dbCheck.properties || {});
-                    console.log(`Current DB properties: ${props.join(', ')}`);
-                } catch (e) { }
-
-                console.log('Attempting auto-repair...');
-
-                // Auto-repair: Add the missing columns
-                await this.client.databases.update({
-                    database_id: databaseId,
-                    properties: {
-                        Date: { date: {} },
-                        Subject: { select: {} },
-                        Description: { rich_text: {} }
-                    }
-                } as any);
-
-                console.log('✅ Database schema update requested. Waiting 3s for Notion latency...');
-                await new Promise(resolve => setTimeout(resolve, 3000));
-
-                console.log('Retrying task creation...');
-                return await createPage();
+                console.log('⚠️ Notion schema latency detected.');
+                throw new Error(`¡Base de datos preparada! Por favor, espera 10 segundos y vuelve a procesar para que Notion sincronice los cambios.`);
             }
             throw error;
         }
