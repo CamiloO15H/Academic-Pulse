@@ -1,6 +1,6 @@
 import { Client } from '@notionhq/client';
 import * as dotenv from 'dotenv';
-import { AcademicTask } from '@/domain/entities/AcademicTask';
+import { AcademicContent } from '../../domain/entities/AcademicContent';
 
 dotenv.config();
 
@@ -13,66 +13,100 @@ export class NotionClient {
         });
     }
 
-    private normalizeSubject(subject: string): string {
-        const lower = subject.toLowerCase();
-        // Standardize common variations
-        if (lower.includes('metodología') || lower.includes('investigación') || lower.includes('seminario')) {
-            return 'Metodología y Seminario de Investigación';
+    async createTask(content: AcademicContent, subjectName: string, databaseId?: string) {
+        const targetDbId = databaseId || process.env.NOTION_DATABASE_ID;
+
+        if (!targetDbId) {
+            console.warn('NOTION_DATABASE_ID missing. Notion mirror skipped.');
+            return null;
         }
-        if (lower.includes('arquitectura')) return 'Arquitectura de Computadores';
-        if (lower.includes('base de datos') || lower.includes('bd')) return 'Bases de Datos';
-        if (lower.includes('gestión')) return 'Gestión Académica';
-
-        // Default: Title Case
-        return subject.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
-    }
-
-    async createTask(task: AcademicTask, databaseId?: string) {
-        // Use provided ID or fallback to env
-        const targetId = databaseId || process.env.NOTION_DATABASE_ID;
-
-        if (!targetId) {
-            throw new Error('NOTION_DATABASE_ID is not defined in environment variables.');
-        }
-
-        const normalizedSubject = this.normalizeSubject(task.subject);
 
         try {
-            let fullDescription = `${task.summary.map(s => `• ${s}`).join('\n')} \n\n${task.description} `;
-            if (fullDescription.length > 2000) {
-                fullDescription = fullDescription.substring(0, 1997) + '...';
+            const properties: any = {
+                Name: {
+                    title: [{ text: { content: content.title } }],
+                },
+                Subject: {
+                    rich_text: [{ text: { content: subjectName } }],
+                },
+                Type: {
+                    rich_text: [{ text: { content: content.contentType || 'apunte' } }]
+                },
+                Source: {
+                    rich_text: [{ text: { content: content.sourceType } }]
+                }
+            };
+
+            if (content.deadline) {
+                properties['Date'] = {
+                    date: { start: new Date(content.deadline).toISOString().split('T')[0] }
+                };
+            }
+
+            const children: any[] = [];
+
+            // Add Key Insights if present
+            if (content.keyInsights && content.keyInsights.length > 0) {
+                children.push({
+                    object: 'block',
+                    type: 'heading_3',
+                    heading_3: { rich_text: [{ text: { content: '💡 Key Insights' } }] }
+                });
+                content.keyInsights.forEach(point => {
+                    children.push({
+                        object: 'block',
+                        type: 'bulleted_list_item',
+                        bulleted_list_item: { rich_text: [{ text: { content: point } }] }
+                    });
+                });
+            }
+
+            if (content.summary && content.summary.length > 0) {
+                children.push({
+                    object: 'block',
+                    type: 'heading_3',
+                    heading_3: { rich_text: [{ text: { content: 'Resumen' } }] }
+                });
+                content.summary.forEach(point => {
+                    children.push({
+                        object: 'block',
+                        type: 'bulleted_list_item',
+                        bulleted_list_item: { rich_text: [{ text: { content: point } }] }
+                    });
+                });
+            }
+
+            // Description
+            if (content.description) {
+                children.push({
+                    object: 'block',
+                    type: 'heading_3',
+                    heading_3: { rich_text: [{ text: { content: 'Descripción' } }] }
+                });
+
+                const descChunks = content.description.match(/.{1,2000}/g) || [];
+                descChunks.forEach(chunk => {
+                    children.push({
+                        object: 'block',
+                        type: 'paragraph',
+                        paragraph: { rich_text: [{ text: { content: chunk } }] }
+                    });
+                });
             }
 
             return await this.client.pages.create({
-                parent: { database_id: targetId },
-                properties: {
-                    Name: {
-                        title: [{ text: { content: task.title } }],
-                    },
-                    Subject: {
-                        select: { name: normalizedSubject },
-                    },
-                    Type: {
-                        select: { name: task.type },
-                    },
-                    Status: {
-                        status: { name: 'Not started' },
-                    },
-                    Description: {
-                        rich_text: [
-                            { text: { content: fullDescription } }
-                        ],
-                    },
-                    ...(task.deadline && {
-                        Deadline: {
-                            date: { start: task.deadline.toISOString() },
-                        },
-                    }),
-                },
-            } as any);
+                parent: { database_id: targetDbId },
+                properties: properties,
+                children: children
+            });
         } catch (error: any) {
-            console.error('Notion Task Creation Error:', error.message);
-            throw error;
+            if (error.code === 'validation_error' && error.message.includes('property that exists')) {
+                console.error('Notion Mirror Sync Error: Missing properties in your Notion Database.');
+                console.error('Please ensure your database has headers: "Name" (title), "Subject" (rich_text), "Type" (rich_text), "Source" (rich_text), and "Date" (date).');
+            } else {
+                console.error('Notion Mirror Sync Error (Non-blocking):', error.message);
+            }
+            return null;
         }
     }
 }

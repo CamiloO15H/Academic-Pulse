@@ -1,31 +1,91 @@
-"use server"
+'use server'
 
+import { createClient } from '@/infrastructure/database/supabaseServer';
+import { SupabaseRepository } from '@/infrastructure/repositories/SupabaseRepository';
 import { ProcessTranscription } from '@/application/use-cases/ProcessTranscription';
-import { GeminiProvider } from '@/infrastructure/llm/GeminiProvider';
 import { NotionClient } from '@/infrastructure/mcp/notionClient';
+import { GeminiProvider } from '@/infrastructure/llm/GeminiProvider';
+import { revalidatePath } from 'next/cache';
 
-export async function processAcademicTranscription(transcription: string, confirmedSubject?: string) {
-    console.log('Server Action: Processing transcription');
+// --- Dependency Injection Helper ---
+const getAuthenticatedRepository = async () => {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        throw new Error('Unauthorized: Please login first.');
+    }
+    return new SupabaseRepository(supabase);
+};
 
-    const llm = new GeminiProvider();
-    const notion = new NotionClient();
-    const useCase = new ProcessTranscription(llm, notion);
+// --- Actions ---
 
-    const dbId = process.env.NOTION_DATABASE_ID;
-    if (!dbId) {
-        throw new Error('NOTION_DATABASE_ID missing in environment');
+export const processAcademicTranscription = async (formData: FormData) => {
+    const transcription = formData.get('transcription') as string;
+    const subjectId = formData.get('subjectId') as string;
+    const confirmedSubject = formData.get('confirmedSubject') as string;
+
+    if (!transcription) {
+        return { status: 'ERROR', message: 'La transcripción está vacía.' };
     }
 
     try {
-        const result = await useCase.execute(transcription, dbId, confirmedSubject);
-        return {
-            success: result.status === 'SUCCESS',
-            status: result.status,
-            data: result.data,
-            message: result.message
-        };
+        const repo = await getAuthenticatedRepository();
+        const gemini = new GeminiProvider();
+        const notion = new NotionClient();
+
+        const processUseCase = new ProcessTranscription(gemini, notion, repo);
+        const databaseId = process.env.NOTION_DATABASE_ID || '';
+        const result = await processUseCase.execute(transcription, databaseId, confirmedSubject, undefined, subjectId);
+
+        revalidatePath('/');
+        return result;
     } catch (error: any) {
         console.error('Action Error:', error);
-        return { success: false, status: 'ERROR', error: error.message };
+        return { status: 'ERROR', message: error.message };
     }
-}
+};
+
+export const createSubject = async (name: string, color: string, icon?: string) => {
+    try {
+        const repo = await getAuthenticatedRepository();
+        await repo.createSubject(name, color, icon || 'book');
+        revalidatePath('/');
+        return { status: 'SUCCESS' };
+    } catch (error: any) {
+        return { status: 'ERROR', message: error.message };
+    }
+};
+
+export const getContentBySubject = async (subjectId: string) => {
+    try {
+        const repo = await getAuthenticatedRepository();
+        const content = await repo.getContentBySubject(subjectId);
+        return { status: 'SUCCESS', data: content };
+    } catch (error: any) {
+        return { status: 'ERROR', message: error.message };
+    }
+};
+
+export const getSubjects = async () => {
+    try {
+        const repo = await getAuthenticatedRepository();
+        const subjects = await repo.getSubjects();
+        return subjects;
+    } catch (error) {
+        console.error('Failed to get subjects:', error);
+        return [];
+    }
+};
+
+export const getRecentActivity = async (subjectId?: string) => {
+    try {
+        const repo = await getAuthenticatedRepository();
+        if (subjectId) {
+            return await repo.getContentBySubject(subjectId);
+        }
+        return await repo.getRecentContent();
+    } catch (error) {
+        console.error('Failed to get activity:', error);
+        return [];
+    }
+};

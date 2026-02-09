@@ -21,5 +21,5 @@ You MUST output a valid JSON object with this exact structure:
   "summary": ["Key Concepts: ...", "Details: ...", "Próximos Pasos: ..."],
   "description": "The 3-step 'Plan de Estudio Express'..."
 }
-Output MUST be a valid JSON object.
+Output MUST be a valid JSON object. Do NOT include markdown formatting outside the JSON block. Ensure all strings are properly escaped to avoid JSON parsing errors. Use double quotes for keys and string values.
 `;
