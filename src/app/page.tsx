@@ -307,35 +307,47 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    {/* Right: Insights Display */}
-                    <div className="lg:col-span-7 space-y-8">
-                        <div className="flex items-center justify-between">
-                            <h2 className="text-2xl font-bold flex items-center gap-3">
-                                <Activity className="text-blue-600 w-6 h-6" />
-                                {selectedSubjectId ? `Contenido de ${selectedSubject?.name}` : 'Actividad Reciente'}
-                            </h2>
-                            <span className="text-xs font-bold text-gray-400 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full">
-                                {contents.length} ITEMS
-                            </span>
+                    {/* Right: Insights Display (Blogcito Feed) */}
+                    <div className="lg:col-span-12 xl:col-span-7 space-y-12">
+                        <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-6">
+                            <div className="flex items-center gap-4">
+                                <div className="h-12 w-12 rounded-2xl bg-gray-50 dark:bg-gray-800 flex items-center justify-center border border-gray-100 dark:border-gray-700">
+                                    <Activity className="text-blue-600 w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h2 className="text-3xl font-black tracking-tight">
+                                        {selectedSubjectId ? `Blog de ${selectedSubject?.name}` : 'Feed Académico'}
+                                    </h2>
+                                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">Últimos Conocimientos Destilados</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span className="text-xs font-black text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-4 py-2 rounded-xl border border-blue-100 dark:border-blue-800">
+                                    {contents.length} ENTRADAS
+                                </span>
+                            </div>
                         </div>
 
                         {isLoading ? (
-                            <ContentSkeleton />
+                            <div className="max-w-3xl mx-auto space-y-8">
+                                <ContentSkeleton />
+                                <ContentSkeleton />
+                            </div>
                         ) : contents.length === 0 ? (
-                            <div className="py-32 rounded-[3rem] border-4 border-dashed border-gray-100 dark:border-gray-800 flex flex-col items-center justify-center text-center px-6">
-                                <div className="text-6xl mb-6 grayscale opacity-30">📂</div>
-                                <h3 className="text-xl font-bold text-gray-400">Sin contenido por ahora</h3>
-                                <p className="text-sm text-gray-400 max-w-[200px]">
-                                    Pega una transcripción en el panel izquierdo para generar tus primeros resúmenes.
+                            <div className="py-32 rounded-[3.5rem] border-4 border-dashed border-gray-50 dark:border-gray-800/50 flex flex-col items-center justify-center text-center px-6 max-w-3xl mx-auto">
+                                <div className="text-8xl mb-8 grayscale opacity-20 filter blur-[1px]">📚</div>
+                                <h3 className="text-2xl font-black text-gray-300 dark:text-gray-700">El feed está en silencio</h3>
+                                <p className="text-sm text-gray-400 dark:text-gray-500 max-w-[280px] mt-2 font-medium">
+                                    Tu viaje de aprendizaje comienza con tu primera transcripción.
                                 </p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-12 max-w-3xl mx-auto pb-20">
                                 {contents.map((item, idx) => (
                                     <div
                                         key={item.id}
-                                        className="animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both"
-                                        style={{ animationDelay: `${idx * 100}ms` }}
+                                        className="animate-in fade-in slide-in-from-bottom-8 duration-1000 fill-mode-both"
+                                        style={{ animationDelay: `${idx * 150}ms` }}
                                     >
                                         <ContentCard content={item} />
                                     </div>
