@@ -21,6 +21,7 @@ export default function Dashboard() {
     const [subjects, setSubjects] = useState<Subject[]>([]);
     const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
     const [contents, setContents] = useState<AcademicContent[]>([]);
+    const [viewMode, setViewMode] = useState<'feed' | 'calendar'>('feed');
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
     const [transcription, setTranscription] = useState('');
@@ -316,15 +317,26 @@ export default function Dashboard() {
                                 </div>
                                 <div>
                                     <h2 className="text-3xl font-black tracking-tight">
-                                        {selectedSubjectId ? `Blog de ${selectedSubject?.name}` : 'Feed Académico'}
+                                        {selectedSubjectId ? `${viewMode === 'feed' ? 'Blog' : 'Agenda'} de ${selectedSubject?.name}` : viewMode === 'feed' ? 'Feed Académico' : 'Agenda Académica'}
                                     </h2>
-                                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">Últimos Conocimientos Destilados</p>
+                                    <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">
+                                        {viewMode === 'feed' ? 'Últimos Conocimientos Destilados' : 'Planificación Estratégica'}
+                                    </p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-3">
-                                <span className="text-xs font-black text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-4 py-2 rounded-xl border border-blue-100 dark:border-blue-800">
-                                    {contents.length} ENTRADAS
-                                </span>
+                            <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 p-1 rounded-2xl border border-gray-200 dark:border-gray-700">
+                                <button
+                                    onClick={() => setViewMode('feed')}
+                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] transition-all ${viewMode === 'feed' ? 'bg-white dark:bg-gray-900 text-blue-600 shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                                >
+                                    Feed
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('calendar')}
+                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.1em] transition-all ${viewMode === 'calendar' ? 'bg-white dark:bg-gray-900 text-blue-600 shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                                >
+                                    Agenda
+                                </button>
                             </div>
                         </div>
 
@@ -332,6 +344,10 @@ export default function Dashboard() {
                             <div className="max-w-3xl mx-auto space-y-8">
                                 <ContentSkeleton />
                                 <ContentSkeleton />
+                            </div>
+                        ) : viewMode === 'calendar' ? (
+                            <div className="animate-in fade-in zoom-in-95 duration-700">
+                                <StudyCalendar contents={contents} />
                             </div>
                         ) : contents.length === 0 ? (
                             <div className="py-32 rounded-[3.5rem] border-4 border-dashed border-gray-50 dark:border-gray-800/50 flex flex-col items-center justify-center text-center px-6 max-w-3xl mx-auto">
@@ -434,3 +450,4 @@ export default function Dashboard() {
 import { SubjectSkeleton, ContentSkeleton } from '@/components/dashboard/SkeletonCards';
 import SubjectGrid from '@/components/dashboard/SubjectGrid';
 import ContentCard from '@/components/dashboard/ContentCard';
+import StudyCalendar from '@/components/dashboard/StudyCalendar';
