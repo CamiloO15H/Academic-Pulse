@@ -1,101 +1,154 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { LLMProvider, LLMResponse } from "@/application/agents/llmProvider";
+import { LLMProvider, LLMResponse, FilePart } from "@/application/agents/llmProvider";
 
 export class GeminiProvider implements LLMProvider {
     private currentKeyIndex: number = 0;
+    private pool: 'fast' | 'heavy' = 'fast';
 
-    constructor() {
-        const apiKeys = (process.env.GOOGLE_API_KEY || "").split(',').map(k => k.trim()).filter(Boolean);
+    constructor(pool: 'fast' | 'heavy' = 'fast') {
+        this.pool = pool;
+        const keysVar = pool === 'heavy' ? (process.env.GOOGLE_API_KEY_HEAVY || process.env.GOOGLE_API_KEY) : process.env.GOOGLE_API_KEY;
+        const apiKeys = (keysVar || "").split(',').map(k => k.trim()).filter(Boolean);
 
         if (apiKeys.length === 0) {
-            throw new Error("GOOGLE_API_KEY is not defined in the environment variables.");
+            console.warn(`[GeminiProvider] No keys found for pool ${pool}. Fallback might fail.`);
         }
 
-        console.log(`[GeminiProvider] Initialized with ${apiKeys.length} API keys for rotation.`);
+        // Randomize start index to ensure distribution across stateless Server Action calls
+        this.currentKeyIndex = Math.floor(Math.random() * apiKeys.length);
+        console.log(`[GeminiProvider] Initialized [${pool.toUpperCase()}] pool with ${apiKeys.length} keys. Starting at Random Index: ${this.currentKeyIndex}`);
     }
 
     private rotateKey() {
-        const apiKeys = (process.env.GOOGLE_API_KEY || "").split(',').map(k => k.trim()).filter(Boolean);
+        const keysVar = this.pool === 'heavy' ? (process.env.GOOGLE_API_KEY_HEAVY || process.env.GOOGLE_API_KEY) : process.env.GOOGLE_API_KEY;
+        const apiKeys = (keysVar || "").split(',').map(k => k.trim()).filter(Boolean);
         this.currentKeyIndex = (this.currentKeyIndex + 1) % apiKeys.length;
-        console.log(`[GeminiProvider] Rotated to API Key index ${this.currentKeyIndex}`);
+        console.log(`[GeminiProvider] Rotated [${this.pool.toUpperCase()}] to API Key index ${this.currentKeyIndex}`);
     }
 
-    async generate(prompt: string, systemPrompt?: string): Promise<LLMResponse> {
+    async generate(prompt: string, systemPrompt?: string, isJson = true, files?: FilePart[]): Promise<LLMResponse> {
         const fullPrompt = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
-        const apiKeys = (process.env.GOOGLE_API_KEY || "").split(',').map(k => k.trim()).filter(Boolean);
+
+        const getApiKeys = () => {
+            const keysVar = this.pool === 'heavy' ? (process.env.GOOGLE_API_KEY_HEAVY || process.env.GOOGLE_API_KEY) : process.env.GOOGLE_API_KEY;
+            return (keysVar || "").split(',').map(k => k.trim()).filter(Boolean);
+        };
+        let apiKeys = getApiKeys();
 
         let lastError: any;
-        const modelsToTry = ["gemini-flash-latest", "gemini-1.5-flash"];
+        // Priority: Stability (2.0-flash) -> Lite (Quota friendly) -> Latest Aliases
+        const modelsToTry = ["gemini-2.0-flash", "gemini-2.0-flash-lite-001", "gemini-flash-latest", "gemini-pro-latest"];
 
         for (const modelName of modelsToTry) {
-            console.log(`[GeminiProvider] Attempting with model: ${modelName}`);
+            console.log(`[GeminiProvider] 🚀 Attempting with model: ${modelName}`);
+            let hardLimitCount = 0;
 
+            // Try all keys in a cycle for this model
             for (let keyAttempt = 0; keyAttempt < apiKeys.length; keyAttempt++) {
+                // If this specific model has hit hard limits on 2 different keys, skip this model entirely
+                if (hardLimitCount >= 2) {
+                    console.warn(`[GeminiProvider] ⏩ Model ${modelName} seems exhausted globally (hard limit hit on ${hardLimitCount} keys). Skipping model.`);
+                    break;
+                }
+
+                // FORCE ROTATION on every keyAttempt to distribute load early
+                this.rotateKey();
+
                 const currentKey = apiKeys[this.currentKeyIndex];
                 const genAI = new GoogleGenerativeAI(currentKey);
                 const model = genAI.getGenerativeModel({ model: modelName });
 
-                console.log(`[GeminiProvider] Using Key Index ${this.currentKeyIndex} for model ${modelName}`);
+                console.log(`[GeminiProvider] 🔑 Using Key Index ${this.currentKeyIndex} for model ${modelName}`);
 
-                const max503Retries = 3;
-                for (let retry503 = 0; retry503 <= max503Retries; retry503++) {
+                const maxRetries = 3;
+                const baseRetryDelay = 3000; // 3s base for 429/quota issues
+
+                for (let attempt = 0; attempt <= maxRetries; attempt++) {
                     try {
-                        const result = await model.generateContent(fullPrompt);
+                        const contentParts: any[] = [fullPrompt];
+                        if (files && files.length > 0) {
+                            files.forEach(file => contentParts.push(file));
+                        }
+
+                        const result = await model.generateContent(contentParts);
                         const response = await result.response;
                         const text = response.text();
 
-                        // Robust JSON Extraction & Cleaning
-                        let sanitizedText = this.sanitizeResponse(text);
+                        // MANDATORY RATE LIMITER DELAY (1s) to respect free tier RPM
+                        console.log(`[GeminiProvider] ✅ Success with ${modelName}. cooling down for 1s...`);
+                        await new Promise(resolve => setTimeout(resolve, 1000));
 
-                        // Success!
-                        return { content: sanitizedText };
+                        if (!isJson) return { content: text };
+
+                        let sanitizedText = this.sanitizeResponse(text);
+                        try {
+                            const parsed = JSON.parse(sanitizedText);
+                            return { content: parsed };
+                        } catch (e) {
+                            console.warn(`[GeminiProvider] JSON parse failed for ${modelName}, returning sanitized string`);
+                            return { content: sanitizedText };
+                        }
                     } catch (error: any) {
                         lastError = error;
-                        const status = error.status || (error.message?.includes("503") ? 503 : 0);
+                        const errorMessage = error.message || "";
+                        const status = error.status || (errorMessage.includes("503") ? 503 : (errorMessage.includes("429") ? 429 : 0));
 
-                        if (status === 503) {
-                            if (retry503 < max503Retries) {
-                                const delay = Math.pow(2, retry503) * 1000;
-                                console.warn(`[GeminiProvider] 503 Service Unavailable. Model likely overloaded. Retrying in ${delay}ms... (Attempt ${retry503 + 1}/${max503Retries})`);
-                                await new Promise(resolve => setTimeout(resolve, delay));
-                                continue; // Retry with the SAME key and SAME model
-                            } else {
-                                console.error(`[GeminiProvider] Exhausted 503 retries for model ${modelName} with current key.`);
-                                // Fall through to rotate key
-                            }
-                        } else if (error.message?.includes("429")) {
-                            console.warn(`[GeminiProvider] Quota 429 hit. Rotating key...`);
-                            break; // Exit 503 loop to rotate key
-                        } else {
-                            // Other errors (e.g. 400, auth) - move to next key
-                            console.error(`[GeminiProvider] Unexpected error: ${error.message}`);
-                            break;
+                        // DETECT HARD LIMITS (Daily / Project Limit / Restriction)
+                        const isHardLimit = errorMessage.includes("limit: 0") ||
+                            errorMessage.includes("Daily Limit") ||
+                            errorMessage.includes("Quota exceeded for metric") ||
+                            errorMessage.includes("User rate limit exceeded");
+
+                        if (status === 429 && isHardLimit) {
+                            hardLimitCount++;
+                            console.error(`[GeminiProvider] 🛑 HARD LIMIT hit for Key index ${this.currentKeyIndex} on ${modelName}. (Count: ${hardLimitCount}/2)`);
+                            break; // Move to next KEY immediately
                         }
+
+                        // If it's a transient error (503, 429 RPM, or network), retry with substantial delay
+                        if ((status === 503 || status === 429 || status === 0) && attempt < maxRetries) {
+                            const currentDelay = baseRetryDelay * (attempt + 1);
+                            console.warn(`[GeminiProvider] ⚠️ Error ${status || 'Network'} (RPM/Transient) on attempt ${attempt + 1}. Retrying in ${currentDelay}ms...`);
+                            await new Promise(resolve => setTimeout(resolve, currentDelay));
+                            continue;
+                        }
+
+                        // If retries exhausted or non-transient error, move to NEXT KEY
+                        console.error(`[GeminiProvider] ❌ Key index ${this.currentKeyIndex} failed for ${modelName}: ${errorMessage.substring(0, 100)}...`);
+                        break;
                     }
                 }
-                this.rotateKey(); // Rotate key after 503 exhaustion or 429
             }
-            console.warn(`[GeminiProvider] All keys exhausted for model ${modelName}. Falling back to next model if available.`);
         }
 
-        console.error("Gemini API Resilience Exhausted. Final Error:", lastError);
-        throw new Error(`Failed to generate content after all resilience measures: ${lastError?.message || 'Unknown Error'}`);
+        console.error("[GeminiProvider] 💀 Total Resilience Exhausted.");
+        throw new Error(`AI Pulse Error: No se pudo procesar la solicitud tras agotar todas las llaves y modelos. Detalle: ${lastError?.message}`);
     }
 
     private sanitizeResponse(text: string): string {
         let cleanText = text.replace(/```json\n?|```/g, '').trim();
-        const firstBrace = cleanText.indexOf('{');
-        const lastBrace = cleanText.lastIndexOf('}');
 
-        if (firstBrace !== -1 && lastBrace !== -1) {
-            cleanText = cleanText.substring(firstBrace, lastBrace + 1);
+        const firstBrace = cleanText.indexOf('{');
+        const firstBracket = cleanText.indexOf('[');
+        const lastBrace = cleanText.lastIndexOf('}');
+        const lastBracket = cleanText.lastIndexOf(']');
+
+        // Find the earliest starting marker
+        let start = -1;
+        if (firstBrace !== -1 && firstBracket !== -1) start = Math.min(firstBrace, firstBracket);
+        else if (firstBrace !== -1) start = firstBrace;
+        else if (firstBracket !== -1) start = firstBracket;
+
+        // Find the latest ending marker
+        let end = -1;
+        if (lastBrace !== -1 && lastBracket !== -1) end = Math.max(lastBrace, lastBracket);
+        else if (lastBrace !== -1) end = lastBrace;
+        else if (lastBracket !== -1) end = lastBracket;
+
+        if (start !== -1 && end !== -1 && end > start) {
+            cleanText = cleanText.substring(start, end + 1);
         }
 
-        return cleanText.replace(/[\u0000-\u001F\u007F-\u009F]/g, (match: string) => {
-            if (match === '\n') return '\\n';
-            if (match === '\r') return '\\r';
-            if (match === '\t') return '\\t';
-            return '';
-        });
+        return cleanText.replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F\u007F-\u009F]/g, '');
     }
 }
