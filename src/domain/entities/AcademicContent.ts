@@ -11,5 +11,6 @@ export interface AcademicContent {
     summary: string[];
     keyInsights?: string[];
     studySteps?: string[];
+    classDate?: Date; // Feature 7: Date of the actual class
     created_at?: string;
 }

@@ -12,12 +12,12 @@ export class ProcessTranscription {
         private supabaseRepository: SupabaseRepository
     ) { }
 
-    async execute(transcription: string, defaultDatabaseId: string, confirmedSubject?: string, userId?: string, subjectId?: string): Promise<{ status: string; data?: AcademicContent; message?: string }> {
+    async execute(transcription: string, defaultDatabaseId: string, confirmedSubject?: string, userId?: string, subjectId?: string, classDate?: Date): Promise<{ status: string; data?: AcademicContent; message?: string }> {
         const scheduledSubject = getSubjectBySchedule();
         const contextualPrompt = `Contexto Horario: Hoy es un día para la materia "${scheduledSubject}". \n\nTranscripción: ${transcription}
         
         INSTRUCCIONES ADICIONALES:
-        - Si el usuario ya confirmó la materia, úsala.
+        - Si el usuario ya conoció la materia, úsala.
         - Extrae "key_insights": Una lista de los puntos clave más importantes (máximo 3).
         - Extrae "study_steps": Una lista de pasos sugeridos para estudiar este tema.
         - Source Type es "transcription".
@@ -26,15 +26,8 @@ export class ProcessTranscription {
         console.log('--- Analyzing transcription with AI for SaaS ---');
         const response = await this.llmProvider.generate(contextualPrompt, SYSTEM_PROMPT);
 
-        // Robust JSON Extraction
-        let cleanContent = response.content;
-        const jsonMatch = response.content.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-            cleanContent = jsonMatch[0];
-        } else {
-            // Fallback to previous cleaning logic if no braces found (though unlikely for valid JSON)
-            cleanContent = response.content.replace(/```json/g, '').replace(/```/g, '').trim();
-        }
+        // Robust JSON Extraction & Sanitization
+        let cleanContent = this.sanitizeJsonResponse(response.content);
 
         let extractedData;
         try {
@@ -43,10 +36,6 @@ export class ProcessTranscription {
             console.error('Failed to parse LLM JSON. Content was:', cleanContent);
             throw new Error(`Error parsing AI response: ${e.message}`);
         }
-
-        // Conflict Resolution: Confirmed Subject > AI Detected
-        // If subjectId is provided (from the UI card), we primarily link to that.
-        // confirmedSubject name is secondary if subjectId is missing.
 
         const content: AcademicContent = {
             subjectId: subjectId || undefined,
@@ -59,7 +48,8 @@ export class ProcessTranscription {
             description: extractedData.description,
             summary: extractedData.summary || [],
             keyInsights: extractedData.key_insights || [],
-            studySteps: extractedData.study_steps || []
+            studySteps: extractedData.study_steps || [],
+            classDate: classDate || new Date() // Feature 7: Use provided class date or fallback to now
         };
 
         // If subjectId is missing, we might need to resolve it by name from Supabase, 
@@ -82,7 +72,24 @@ export class ProcessTranscription {
         this.notionClient.createTask(content, subjectName, defaultDatabaseId).catch(err => {
             console.error('Notion async mirror failed:', err.message);
         });
-
         return { status: 'SUCCESS', data: savedContent, message: 'Contenido procesado y guardado en tu cuenta.' };
+    }
+
+    private sanitizeJsonResponse(raw: string): string {
+        // 1. Remove Markdown code blocks and trim
+        let clean = raw.replace(/```json/g, '').replace(/```/g, '').trim();
+
+        // 2. Clear invisible control characters (\x00-\x1F) except for allowed whitespace
+        // Also handle actual newlines that Gemini might put inside a string value
+        clean = clean.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F]/g, '');
+
+        // 3. Extract content between first { and last } to remove extra conversational text
+        const firstBrace = clean.indexOf('{');
+        const lastBrace = clean.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            clean = clean.substring(firstBrace, lastBrace + 1);
+        }
+
+        return clean;
     }
 }

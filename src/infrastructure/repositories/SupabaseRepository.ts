@@ -47,7 +47,8 @@ export class SupabaseRepository {
                 description: content.description,
                 summary: content.summary,
                 key_insights: content.keyInsights,
-                study_steps: content.studySteps
+                study_steps: content.studySteps,
+                class_date: content.classDate // Feature 7
             }])
             .select()
             .single();
