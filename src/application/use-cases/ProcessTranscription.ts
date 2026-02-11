@@ -14,7 +14,10 @@ export class ProcessTranscription {
 
     async execute(transcription: string, defaultDatabaseId: string, confirmedSubject?: string, userId?: string, subjectId?: string, classDate?: Date): Promise<{ status: string; data?: AcademicContent; message?: string }> {
         const scheduledSubject = getSubjectBySchedule();
-        const contextualPrompt = `Contexto Horario: Hoy es un día para la materia "${scheduledSubject}". \n\nTranscripción: ${transcription}
+        const contextualPrompt = `Contexto Horario: Hoy es un día para la materia "${scheduledSubject}".
+        Fecha de Clase: ${classDate ? classDate.toISOString().split('T')[0] : 'Hoy'}
+        
+        Transcripción: ${transcription}
         
         INSTRUCCIONES ADICIONALES:
         - Si el usuario ya conoció la materia, úsala.

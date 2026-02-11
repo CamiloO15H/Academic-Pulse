@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS academic_content (
   summary TEXT[],
   key_insights TEXT[],
   study_steps TEXT[],
+  class_date TIMESTAMP WITH TIME ZONE, -- New in Feature 7
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
