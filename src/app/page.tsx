@@ -24,6 +24,7 @@ export default function Dashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
     const [transcription, setTranscription] = useState('');
+    const [classDate, setClassDate] = useState(new Date().toISOString().split('T')[0]);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     // New Subject Form
@@ -69,6 +70,7 @@ export default function Dashboard() {
 
         const formData = new FormData();
         formData.append('transcription', transcription);
+        formData.append('classDate', classDate);
         if (selectedSubjectId) formData.append('subjectId', selectedSubjectId);
 
         const result = await processAcademicTranscription(formData);
@@ -95,6 +97,13 @@ export default function Dashboard() {
         if (res.status === 'SUCCESS') {
             const subj = await getSubjects();
             setSubjects(subj);
+
+            // Auto-select the newly created subject if we're in the middle of a flow
+            // Note: In a real app we'd get the ID from the response, but createSubject action currently returns SUCCESS
+            // We'll find the one that matches the name we just created
+            const newSubj = subj.find(s => s.name === newSubjectName);
+            if (newSubj) setSelectedSubjectId(newSubj.id!);
+
             setIsModalOpen(false);
             setNewSubjectName('');
         }
@@ -209,32 +218,76 @@ export default function Dashboard() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                     {/* Left: AI Input */}
-                    <div className="lg:col-span-5">
+                    <div className="lg:col-span-12 xl:col-span-5">
                         <div className="sticky top-24 space-y-6">
-                            <div className="p-8 rounded-[3rem] glass-morphism shadow-2xl shadow-blue-500/5 space-y-6">
+                            <div className="p-8 rounded-[3rem] glass-morphism shadow-2xl shadow-blue-500/5 space-y-8 animate-in slide-in-from-left-4 duration-500">
                                 <div className="flex items-center gap-3">
-                                    <div className="h-12 w-12 rounded-2xl bg-blue-600/10 flex items-center justify-center">
-                                        <FileText className="text-blue-600 w-6 h-6" />
+                                    <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                                        <Plus className="text-white w-7 h-7" />
                                     </div>
                                     <div>
-                                        <h3 className="text-xl font-bold">Procesador IA</h3>
-                                        <p className="text-xs text-gray-400 font-medium">CONVERSIÓN ACADÉMICA</p>
+                                        <h3 className="text-2xl font-black tracking-tight">Nuevo Blogcito</h3>
+                                        <p className="text-[10px] text-gray-400 font-black uppercase tracking-[0.2em]">Captura Inteligente</p>
                                     </div>
                                 </div>
 
-                                <div className="group relative">
-                                    <textarea
-                                        value={transcription}
-                                        onChange={(e) => setTranscription(e.target.value)}
-                                        placeholder={selectedSubjectId ? `Agregando a ${selectedSubject?.name}...` : "¿Qué aprendiste hoy? Pega tu resumen, transcripción o notas..."}
-                                        className="w-full h-80 p-6 rounded-[2rem] bg-gray-50/50 dark:bg-gray-800/50 border-2 border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-gray-900 transition-all outline-none text-gray-700 dark:text-gray-200 resize-none font-medium leading-relaxed"
-                                    />
-                                    <div className="absolute top-4 right-4 h-2 w-2 rounded-full bg-blue-500 group-focus-within:animate-ping" />
+                                <div className="space-y-6">
+                                    {/* 1. Materia Selector */}
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-2">1. Selecciona la Materia</label>
+                                        <div className="flex gap-2">
+                                            <select
+                                                value={selectedSubjectId || ''}
+                                                onChange={(e) => setSelectedSubjectId(e.target.value || null)}
+                                                className="flex-1 p-4 rounded-2xl bg-gray-50/80 dark:bg-gray-800/80 border-2 border-transparent focus:border-blue-500 outline-none transition-all font-bold appearance-none cursor-pointer"
+                                            >
+                                                <option value="">-- Elige una materia --</option>
+                                                {subjects.map(s => (
+                                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                                ))}
+                                            </select>
+                                            <button
+                                                onClick={() => setIsModalOpen(true)}
+                                                className="p-4 rounded-2xl bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20"
+                                                title="Nueva Materia"
+                                            >
+                                                <Plus className="w-6 h-6" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* 2. Fecha Selector */}
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-2">2. Fecha de la Clase</label>
+                                        <div className="relative">
+                                            <input
+                                                type="date"
+                                                value={classDate}
+                                                onChange={(e) => setClassDate(e.target.value)}
+                                                className="w-full p-4 rounded-2xl bg-gray-50/80 dark:bg-gray-800/80 border-2 border-transparent focus:border-blue-500 outline-none transition-all font-bold cursor-pointer"
+                                            />
+                                            <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500 pointer-events-none" />
+                                        </div>
+                                    </div>
+
+                                    {/* 3. Transcripción */}
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 ml-2">3. Transcripción / Notas</label>
+                                        <div className="group relative">
+                                            <textarea
+                                                value={transcription}
+                                                onChange={(e) => setTranscription(e.target.value)}
+                                                placeholder="¿Qué aprendiste hoy? Pega tu resumen, transcripción o notas para que la IA genere el blogcito..."
+                                                className="w-full h-64 p-6 rounded-[2rem] bg-gray-50/80 dark:bg-gray-800/80 border-2 border-transparent focus:border-blue-500 focus:bg-white dark:focus:bg-gray-900 transition-all outline-none text-gray-700 dark:text-gray-200 resize-none font-medium leading-relaxed"
+                                            />
+                                            <div className="absolute top-4 right-4 h-2 w-2 rounded-full bg-blue-500 group-focus-within:animate-ping" />
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <button
                                     onClick={handleProcess}
-                                    disabled={isProcessing || !transcription}
+                                    disabled={isProcessing || !transcription || !selectedSubjectId}
                                     className="w-full py-5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-extrabold text-lg shadow-2xl shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-1 active:translate-y-0 transition-all disabled:opacity-30 disabled:hover:translate-y-0"
                                 >
                                     {isProcessing ? (
@@ -243,7 +296,7 @@ export default function Dashboard() {
                                             <span>DESTILANDO CONOCIMIENTO...</span>
                                         </div>
                                     ) : (
-                                        'EXTRAER INSIGHTS'
+                                        'GENERAR BLOGCITO'
                                     )}
                                 </button>
 
