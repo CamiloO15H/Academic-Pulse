@@ -16,6 +16,12 @@ import { createClient } from '@/infrastructure/database/supabaseClient';
 import { AcademicContent } from '@/domain/entities/AcademicContent';
 import { Subject } from '@/domain/entities/Subject';
 
+// Components
+import { SubjectSkeleton, ContentSkeleton } from '@/components/dashboard/SkeletonCards';
+import SubjectGrid from '@/components/dashboard/SubjectGrid';
+import ContentCard from '@/components/dashboard/ContentCard';
+import StudyCalendar from '@/components/dashboard/StudyCalendar';
+
 export default function Dashboard() {
     // State
     const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -446,8 +452,3 @@ export default function Dashboard() {
     );
 }
 
-// Client Components Helper (Skeletons)
-import { SubjectSkeleton, ContentSkeleton } from '@/components/dashboard/SkeletonCards';
-import SubjectGrid from '@/components/dashboard/SubjectGrid';
-import ContentCard from '@/components/dashboard/ContentCard';
-import StudyCalendar from '@/components/dashboard/StudyCalendar';
