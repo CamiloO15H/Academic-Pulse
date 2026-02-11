@@ -23,6 +23,8 @@ export const processAcademicTranscription = async (formData: FormData) => {
     const transcription = formData.get('transcription') as string;
     const subjectId = formData.get('subjectId') as string;
     const confirmedSubject = formData.get('confirmedSubject') as string;
+    const classDateStr = formData.get('classDate') as string;
+    const classDate = classDateStr ? new Date(classDateStr) : undefined;
 
     if (!transcription) {
         return { status: 'ERROR', message: 'La transcripción está vacía.' };
@@ -35,7 +37,7 @@ export const processAcademicTranscription = async (formData: FormData) => {
 
         const processUseCase = new ProcessTranscription(gemini, notion, repo);
         const databaseId = process.env.NOTION_DATABASE_ID || '';
-        const result = await processUseCase.execute(transcription, databaseId, confirmedSubject, undefined, subjectId);
+        const result = await processUseCase.execute(transcription, databaseId, confirmedSubject, undefined, subjectId, classDate);
 
         revalidatePath('/');
         return result;
