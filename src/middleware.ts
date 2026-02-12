@@ -38,10 +38,38 @@ export async function middleware(request: NextRequest) {
     }
 
     if (user && request.nextUrl.pathname === '/login') {
-        // Redirect to home if user is already authenticated
+        // Redirect to appropriate dashboard if already authenticated
         const url = request.nextUrl.clone()
-        url.pathname = '/'
+        if (user.email?.toLowerCase() === process.env.ADMIN_EMAIL?.toLowerCase()) {
+            url.pathname = '/admin'
+        } else {
+            url.pathname = '/'
+        }
         return NextResponse.redirect(url)
+    }
+
+    // New: If admin hits the root, send them to admin dashboard
+    if (user && request.nextUrl.pathname === '/') {
+        if (user.email?.toLowerCase() === process.env.ADMIN_EMAIL?.toLowerCase()) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/admin'
+            return NextResponse.redirect(url)
+        }
+    }
+
+    if (request.nextUrl.pathname.startsWith('/admin')) {
+        if (!user) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/login'
+            return NextResponse.redirect(url)
+        }
+
+        // Check admin email
+        if (user.email?.toLowerCase() !== process.env.ADMIN_EMAIL?.toLowerCase()) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/'
+            return NextResponse.redirect(url)
+        }
     }
 
     return response

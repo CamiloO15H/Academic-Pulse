@@ -29,6 +29,25 @@ export async function GET(request: Request) {
         )
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (!error) {
+            // Check if user has a username
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('username')
+                    .eq('id', user.id)
+                    .single()
+
+                if (!profile?.username) {
+                    return NextResponse.redirect(`${origin}/onboarding`)
+                }
+
+                // Redirect to admin if email matches
+                if (user.email?.toLowerCase() === process.env.ADMIN_EMAIL?.toLowerCase()) {
+                    return NextResponse.redirect(`${origin}/admin`)
+                }
+            }
+
             return NextResponse.redirect(`${origin}${next}`)
         }
     }

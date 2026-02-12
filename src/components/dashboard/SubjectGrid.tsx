@@ -6,10 +6,14 @@ import { Subject } from '../../domain/entities/Subject';
 interface SubjectGridProps {
     subjects: Subject[];
     onSelectSubject: (subjectId: string) => void;
+    onEditSubject: (subject: Subject) => void;
+    onDeleteSubject: (subjectId: string) => void;
     selectedSubjectId?: string;
 }
 
-const SubjectGrid: React.FC<SubjectGridProps> = ({ subjects, onSelectSubject, selectedSubjectId }) => {
+import { Edit2, Trash2 } from 'lucide-react';
+
+const SubjectGrid: React.FC<SubjectGridProps> = ({ subjects, onSelectSubject, onEditSubject, onDeleteSubject, selectedSubjectId }) => {
     // Helper to render icon or emoji
     const renderIcon = (iconStr?: string) => {
         if (!iconStr) return '📚';
@@ -28,10 +32,10 @@ const SubjectGrid: React.FC<SubjectGridProps> = ({ subjects, onSelectSubject, se
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 p-6">
             {subjects.map((subject) => (
-                <button
+                <div
                     key={subject.id}
                     onClick={() => onSelectSubject(subject.id!)}
-                    className={`group relative overflow-hidden rounded-3xl p-8 transition-all duration-500 hover:scale-[1.03] hover:-translate-y-2 ${selectedSubjectId === subject.id
+                    className={`group relative overflow-hidden rounded-3xl p-8 transition-all duration-500 hover:scale-[1.03] hover:-translate-y-2 cursor-pointer ${selectedSubjectId === subject.id
                         ? 'ring-2 ring-blue-500 shadow-2xl shadow-blue-500/20'
                         : 'hover:shadow-xl shadow-sm'
                         }`}
@@ -73,7 +77,31 @@ const SubjectGrid: React.FC<SubjectGridProps> = ({ subjects, onSelectSubject, se
                         className={`absolute inset-0 border-2 rounded-3xl transition-opacity duration-300 ${selectedSubjectId === subject.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                         style={{ borderColor: `${subject.color}60` }}
                     />
-                </button>
+
+                    {/* Actions Overlay */}
+                    <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onEditSubject(subject);
+                            }}
+                            className="p-2 rounded-xl bg-white/80 dark:bg-gray-800/80 text-gray-600 hover:text-blue-600 shadow-sm backdrop-blur-md transition-all"
+                            title="Editar Materia"
+                        >
+                            <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteSubject(subject.id!);
+                            }}
+                            className="p-2 rounded-xl bg-white/80 dark:bg-gray-800/80 text-gray-600 hover:text-red-600 shadow-sm backdrop-blur-md transition-all"
+                            title="Eliminar Materia"
+                        >
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
             ))}
         </div>
     );

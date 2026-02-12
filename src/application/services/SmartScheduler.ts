@@ -1,6 +1,6 @@
 import { CalendarEvent } from '@/domain/entities/CalendarEvent';
 import { GeminiProvider } from '@/infrastructure/llm/GeminiProvider';
-import { ACADEMIC_STUDY_SUGGESTION_PROMPT } from '@/application/agents/prompts';
+import { ACADEMIC_STUDY_SUGGESTION_PROMPT, ACADEMIC_STUDY_BATCH_PROMPT } from '@/application/agents/prompts';
 
 export class SmartScheduler {
     private gemini: GeminiProvider;
@@ -79,52 +79,102 @@ export class SmartScheduler {
     async strategizeStudy(criticalEvents: CalendarEvent[], availableGaps: { date: string, start: string, end: string }[]): Promise<any[]> {
         if (criticalEvents.length === 0 || availableGaps.length === 0) return [];
 
-        const suggestedBlocks: any[] = [];
+        const assignments: any[] = [];
         const blocksPerDay: Record<string, number> = {};
+        const MAX_BLOCKS_PER_DAY = 2; // Limit per day
+        let assignmentIdCounter = 1;
 
-        // Prioritize: High weight and close dates come first
+        // 1. Phase: Allocation (Deterministic)
+        // Prioritize: High weight and close dates come first (already sorted in analyzeLoad)
         for (const exam of criticalEvents) {
             // Find gaps BEFORE the exam date
             const validGaps = availableGaps.filter(g => g.date <= exam.eventDate);
 
             if (validGaps.length === 0) continue;
 
-            // Pick up to 2 gaps for this exam (or shared with others)
-            for (const gap of validGaps) {
-                if ((blocksPerDay[gap.date] || 0) >= 2) continue; // Max 2 blocks per day limit
+            const examAssignments = assignments.filter(a => a.exam.id === exam.id).length;
+            if (examAssignments >= 4) continue; // Hard limit: max 4 blocks per exam total
 
-                // Remove gap from available list so it's not reused identically
+            // Pick up to 2 gaps for this exam (or shared with others)
+            let assignedCount = 0;
+            for (const gap of validGaps) {
+                if ((blocksPerDay[gap.date] || 0) >= MAX_BLOCKS_PER_DAY) continue;
+
+                // Assign this gap
+                blocksPerDay[gap.date] = (blocksPerDay[gap.date] || 0) + 1;
+
+                // Remove gap from available list so it's not reused
                 const gapIndex = availableGaps.indexOf(gap);
                 if (gapIndex > -1) availableGaps.splice(gapIndex, 1);
 
-                // Call Gemini with rotation/resilience
-                try {
-                    const response = await this.gemini.generate(
-                        `Evento: ${exam.title} (${exam.weight}%). Bloque: ${gap.date} de ${gap.start} a ${gap.end}.`,
-                        ACADEMIC_STUDY_SUGGESTION_PROMPT.replace('{{EXAM_DETAILS}}', JSON.stringify(exam)).replace('{{TIME_BLOCKS}}', JSON.stringify(gap)),
-                        true
-                    );
-
-                    if (Array.isArray(response.content)) {
-                        const suggestion = response.content[0];
-                        if (suggestion) {
-                            suggestedBlocks.push({
-                                ...suggestion,
-                                subjectId: exam.subjectId,
-                                color: exam.color || '#3b82f6'
-                            });
-                            blocksPerDay[gap.date] = (blocksPerDay[gap.date] || 0) + 1;
-                        }
+                assignments.push({
+                    id: assignmentIdCounter++,
+                    exam: {
+                        title: exam.title,
+                        weight: exam.weight,
+                        date: exam.eventDate,
+                        subjectId: exam.subjectId,
+                        color: exam.color
+                    },
+                    gap: {
+                        date: gap.date,
+                        start: gap.start,
+                        end: gap.end
                     }
-                } catch (error) {
-                    console.error("[SmartScheduler] AI Strategy failed for a block, skipping...", error);
-                }
+                });
 
-                if (suggestedBlocks.filter(b => b.date === gap.date).length >= 2) break;
+                assignedCount++;
+                if (assignedCount >= 2) break; // Max 2 blocks per exam
             }
         }
 
-        return suggestedBlocks;
+        if (assignments.length === 0) return [];
+
+        console.log(`[SmartScheduler] Batched ${assignments.length} study blocks. Requesting AI strategy...`);
+
+        // 2. Phase: Generation (Batch AI Call)
+        try {
+            // Chunking if too many assignments (though 10-20 should fit in context window)
+            // For now, single batch
+            const prompt = `Planifica los siguientes bloques de estudio:\n${JSON.stringify(assignments, null, 2)}`;
+
+            const response = await this.gemini.generate(
+                prompt,
+                ACADEMIC_STUDY_BATCH_PROMPT,
+                true
+            );
+
+            if (Array.isArray(response.content)) {
+                return response.content.map((suggestion: any) => {
+                    const original = assignments.find(a => a.id === suggestion.id);
+                    if (!original) return null;
+
+                    return {
+                        title: suggestion.title,
+                        description: suggestion.description,
+                        startTime: original.gap.start,
+                        endTime: original.gap.end,
+                        date: original.gap.date,
+                        subjectId: original.exam.subjectId,
+                        color: original.exam.color || '#3b82f6'
+                    };
+                }).filter(Boolean);
+            }
+        } catch (error) {
+            console.error("[SmartScheduler] Batch AI Strategy failed.", error);
+            // Fallback: Return generic blocks if AI fails
+            return assignments.map(a => ({
+                title: `Estudiar: ${a.exam.title}`,
+                description: `Bloque reservado para ${a.exam.title}.`,
+                startTime: a.gap.start,
+                endTime: a.gap.end,
+                date: a.gap.date,
+                subjectId: a.exam.subjectId,
+                color: a.exam.color || '#3b82f6'
+            }));
+        }
+
+        return [];
     }
 
     private getMinutesDiff(start: string, end: string): number {

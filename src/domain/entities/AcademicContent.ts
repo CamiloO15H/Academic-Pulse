@@ -12,5 +12,9 @@ export interface AcademicContent {
     keyInsights?: string[];
     studySteps?: string[];
     classDate?: Date; // Feature 7: Date of the actual class
+    attachments?: { name: string, url: string, type: string, size?: number }[];
+    notes?: string;
+    transcription?: string; // Phase 7: Raw content for contextual chat
+    googleEventId?: string; // Phase 9: Google Sync tracking
     created_at?: string;
 }

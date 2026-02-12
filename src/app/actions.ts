@@ -3,7 +3,6 @@
 import { createClient } from '@/infrastructure/database/supabaseServer';
 import { SupabaseRepository } from '@/infrastructure/repositories/SupabaseRepository';
 import { ProcessTranscription } from '@/application/use-cases/ProcessTranscription';
-import { NotionClient } from '@/infrastructure/mcp/notionClient';
 import { GeminiProvider } from '@/infrastructure/llm/GeminiProvider';
 import { revalidatePath } from 'next/cache';
 import { AcademicContent } from '@/domain/entities/AcademicContent';
@@ -57,9 +56,7 @@ export const processAcademicTranscription = async (formData: FormData) => {
     try {
         const repo = await getAuthenticatedRepository();
         const gemini = new GeminiProvider('heavy');
-        const notion = new NotionClient();
-
-        const processUseCase = new ProcessTranscription(gemini, notion, repo);
+        const processUseCase = new ProcessTranscription(gemini, repo);
         const databaseId = process.env.NOTION_DATABASE_ID || '';
         const result = await processUseCase.execute(transcription, databaseId, confirmedSubject, undefined, subjectId, classDate);
 
@@ -346,11 +343,15 @@ export const askQuestionToClass = async (contentId: string, question: string) =>
         const gemini = new GeminiProvider();
 
         // 1. Get context
-        const contents = await repo.getRecentContent();
-        const content = contents.find(c => c.id === contentId);
+        // Use a direct fetch by ID to ensure we have the transcription (which is excluded from listings)
+        const { data: content, error: fetchError } = await (await createClient())
+            .from('academic_content')
+            .select('*')
+            .eq('id', contentId)
+            .single();
 
-        if (!content) {
-            throw new Error('Contenido no encontrado.');
+        if (fetchError || !content) {
+            throw new Error('Contenido no encontrado o error al recuperar la transcripción.');
         }
 
         // 2. Prepare context string
@@ -556,6 +557,82 @@ export const migrateIntelligence = async () => {
         return { status: 'SUCCESS', data: results };
     } catch (error: any) {
         console.error('[Action Error] migrateIntelligence:', error);
+        return { status: 'ERROR', message: error.message };
+    }
+};
+
+export const uploadAttachment = async (contentId: string, fileName: string, fileData: string, mimeType: string) => {
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Unauthorized');
+
+        // Convert base64 to Buffer
+        const buffer = Buffer.from(fileData, 'base64');
+
+        // 10MB Limit check
+        if (buffer.length > 10 * 1024 * 1024) throw new Error('El archivo excede el límite de 10MB.');
+
+        const filePath = `${user.id}/${contentId}/${Date.now()}-${fileName}`;
+
+        console.log('--- STORAGE DEBUG ---');
+        console.log('User ID:', user.id);
+        console.log('Target Bucket:', 'academic-files');
+        console.log('File Path:', filePath);
+
+        const { data, error } = await supabase.storage
+            .from('academic-files')
+            .upload(filePath, buffer, {
+                contentType: mimeType,
+                upsert: true
+            });
+
+        if (error) {
+            console.error('Upload Failed Details:', error);
+            throw error;
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+            .from('academic-files')
+            .getPublicUrl(filePath);
+
+        // Update content entry
+        const { data: record, error: fetchError } = await supabase
+            .from('academic_content')
+            .select('attachments')
+            .eq('id', contentId)
+            .single();
+
+        if (fetchError) throw fetchError;
+
+        const currentAttachments = record?.attachments || [];
+        const newAttachment = {
+            name: fileName,
+            url: publicUrl,
+            type: mimeType,
+            size: buffer.length
+        };
+
+        const { error: updateError } = await supabase
+            .from('academic_content')
+            .update({
+                attachments: [...currentAttachments, newAttachment]
+            })
+            .eq('id', contentId);
+
+        if (updateError) {
+            console.error('DB Update Failed:', updateError);
+            throw updateError;
+        }
+
+        console.log('--- DB UPDATE SUCCESS ---');
+        console.log('New Attachment Added:', fileName);
+
+        revalidatePath('/');
+        return { status: 'SUCCESS', data: newAttachment };
+    } catch (error: any) {
+        console.error('Upload Error:', error);
         return { status: 'ERROR', message: error.message };
     }
 };

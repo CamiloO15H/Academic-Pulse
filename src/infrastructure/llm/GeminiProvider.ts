@@ -1,3 +1,4 @@
+
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { LLMProvider, LLMResponse, FilePart } from "@/application/agents/llmProvider";
 
@@ -36,8 +37,13 @@ export class GeminiProvider implements LLMProvider {
         let apiKeys = getApiKeys();
 
         let lastError: any;
-        // Priority: Stability (2.0-flash) -> Lite (Quota friendly) -> Latest Aliases
-        const modelsToTry = ["gemini-2.0-flash", "gemini-2.0-flash-lite-001", "gemini-flash-latest", "gemini-pro-latest"];
+        // Priority: Experimental (3.0 - Verified Active) -> Cost/Quota (Lite) -> Stability (2.0)
+        const modelsToTry = [
+            "gemini-3-flash-preview",
+            "gemini-2.0-flash-lite-preview-02-05", // Try specific preview if available
+            "gemini-2.0-flash-lite-001",
+            "gemini-2.0-flash"
+        ];
 
         for (const modelName of modelsToTry) {
             console.log(`[GeminiProvider] 🚀 Attempting with model: ${modelName}`);
@@ -98,6 +104,14 @@ export class GeminiProvider implements LLMProvider {
                             errorMessage.includes("Daily Limit") ||
                             errorMessage.includes("Quota exceeded for metric") ||
                             errorMessage.includes("User rate limit exceeded");
+
+                        if (status === 429) {
+                            console.warn(`[GeminiProvider] ⚠️ 429 Detail for Key ${this.currentKeyIndex} on ${modelName}: ${errorMessage}`);
+                        }
+
+                        if (status === 404) {
+                            console.warn(`[GeminiProvider] ❓ 404 Detail for Key ${this.currentKeyIndex} on ${modelName}: ${errorMessage}`);
+                        }
 
                         if (status === 429 && isHardLimit) {
                             hardLimitCount++;
