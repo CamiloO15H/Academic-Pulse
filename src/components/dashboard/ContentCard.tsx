@@ -101,6 +101,11 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, onAskAI, onDelete, o
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file || !content.id) return;
+        await uploadFile(file);
+    };
+
+    const uploadFile = async (file: File) => {
+        if (!content.id) return;
 
         // 10MB Limit
         if (file.size > 10 * 1024 * 1024) {
@@ -110,7 +115,6 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, onAskAI, onDelete, o
 
         setIsUploading(true);
         try {
-            const formData = new FormData();
             const reader = new FileReader();
 
             reader.onload = async () => {
@@ -137,6 +141,21 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, onAskAI, onDelete, o
         } finally {
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const handlePaste = async (e: React.ClipboardEvent) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                if (file) {
+                    await uploadFile(file);
+                    toast.info('Subiendo imagen pegada...');
+                }
+            }
         }
     };
 
@@ -363,8 +382,9 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
                                 <textarea
                                     value={editedNotes}
                                     onChange={(e) => setEditedNotes(e.target.value)}
+                                    onPaste={handlePaste}
                                     className="w-full text-sm text-foreground bg-background rounded-xl p-3 border border-border outline-none min-h-[80px] focus:border-primary/50"
-                                    placeholder="Añade notas aquí..."
+                                    placeholder="Añade notas aquí (puedes pegar imágenes)..."
                                     autoFocus={isQuickEditingNotes}
                                 />
                                 {isQuickEditingNotes && (
@@ -466,35 +486,49 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
                             </div>
                         )}
 
-                        <div className="flex flex-col gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {displayContent.attachments && displayContent.attachments.length > 0 ? (
                                 displayContent.attachments.map((file, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-3 rounded-2xl bg-secondary/30 border border-border group/att hover:bg-secondary/50 transition-all">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 rounded-xl bg-background text-primary shadow-sm border border-border">
-                                                {getFileIcon(file.type)}
+                                    <div key={idx} className="flex flex-col rounded-2xl bg-secondary/30 border border-border group/att overflow-hidden hover:bg-secondary/50 transition-all">
+                                        {file.type.includes('image') && (
+                                            <div className="relative aspect-video w-full overflow-hidden bg-black/5 border-b border-border">
+                                                <img
+                                                    src={file.url}
+                                                    alt={file.name}
+                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover/att:scale-110"
+                                                />
+                                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/att:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <ExternalLink className="w-6 h-6 text-white" />
+                                                </div>
                                             </div>
-                                            <div className="flex flex-col">
-                                                <a
-                                                    href={file.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-xs font-bold text-foreground hover:text-primary transition-colors flex items-center gap-1"
-                                                >
-                                                    {file.name}
-                                                    <ExternalLink className="w-2.5 h-2.5 opacity-50" />
-                                                </a>
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                                                    {file.type.split('/')[1] || 'Recurso'} • {file.size ? `${(file.size / 1024 / 1024).toFixed(1)}MB` : 'vínculo'}
-                                                </span>
+                                        )}
+                                        <div className="flex items-center justify-between p-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 rounded-xl bg-background text-primary shadow-sm border border-border">
+                                                    {getFileIcon(file.type)}
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <a
+                                                        href={file.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-[11px] font-bold text-foreground hover:text-primary transition-colors flex items-center gap-1 truncate max-w-[120px]"
+                                                    >
+                                                        {file.name}
+                                                        <ExternalLink className="w-2.5 h-2.5 opacity-50" />
+                                                    </a>
+                                                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                                                        {file.type.split('/')[1] || 'Recurso'} • {file.size ? `${(file.size / 1024 / 1024).toFixed(1)}MB` : 'vínculo'}
+                                                    </span>
+                                                </div>
                                             </div>
+                                            <button
+                                                onClick={() => handleRemoveAttachment(idx)}
+                                                className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all md:opacity-0 md:group-hover/att:opacity-100"
+                                            >
+                                                <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
                                         </div>
-                                        <button
-                                            onClick={() => handleRemoveAttachment(idx)}
-                                            className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all opacity-0 group-hover/att:opacity-100"
-                                        >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
                                     </div>
                                 ))
                             ) : (
