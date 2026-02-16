@@ -7,10 +7,12 @@ import { GeminiProvider } from '@/infrastructure/llm/GeminiProvider';
 import { revalidatePath } from 'next/cache';
 import { AcademicContent } from '@/domain/entities/AcademicContent';
 import { CalendarEvent } from '@/domain/entities/CalendarEvent';
-import { ACADEMIC_TUTOR_PROMPT, SYLLABUS_SCANNER_PROMPT } from '@/application/agents/prompts';
+import { ACADEMIC_TUTOR_PROMPT, SYLLABUS_SCANNER_PROMPT, GLOBAL_CHAT_PROMPT } from '@/application/agents/prompts';
 import { GoogleCalendarService } from '@/infrastructure/services/GoogleCalendarService';
 import { SmartScheduler } from '@/application/services/SmartScheduler';
 import { IntelligenceMigrator } from '@/application/services/IntelligenceMigrator';
+import { SubjectResource } from '@/domain/entities/SubjectResource';
+import { toUTCDate } from '@/application/utils/date';
 
 // ... Dependency Injection Helper ...
 
@@ -47,7 +49,7 @@ export const processAcademicTranscription = async (formData: FormData) => {
     const subjectId = formData.get('subjectId') as string;
     const confirmedSubject = formData.get('confirmedSubject') as string;
     const classDateStr = formData.get('classDate') as string;
-    const classDate = classDateStr ? new Date(classDateStr) : undefined;
+    const classDate = classDateStr ? toUTCDate(classDateStr) : undefined;
 
     if (!transcription) {
         return { status: 'ERROR', message: 'La transcripción está vacía.' };
@@ -425,7 +427,7 @@ export const syncCalendarNow = async () => {
 
 export const scanSyllabus = async (text: string, subjectId: string, files?: { data: string, mimeType: string }[]) => {
     try {
-        console.log('[DEBUG] scanSyllabus started for subject:', subjectId, files?.length ? '(with files)' : '(text only)');
+        // scanSyllabus started
         const gemini = new GeminiProvider('heavy');
         const currentYear = new Date().getFullYear().toString();
         const semesterStartDate = '03 de febrero de 2026';
@@ -436,7 +438,7 @@ export const scanSyllabus = async (text: string, subjectId: string, files?: { da
         const response = await gemini.generate(text, prompt, true, files?.map(f => ({
             inlineData: f
         })));
-        console.log('[DEBUG] AI Generation finished');
+        // AI Generation finished
 
         let events: any[] = [];
         if (Array.isArray(response.content)) {
@@ -454,7 +456,7 @@ export const scanSyllabus = async (text: string, subjectId: string, files?: { da
             }
         }
 
-        console.log(`[DEBUG] Returning ${events.length} events to client`);
+        // Returning events
         return { status: 'SUCCESS', data: events };
     } catch (error: any) {
         console.error('Scan Syllabus Error:', error);
@@ -511,7 +513,7 @@ export const suggestStudyBlocks = async () => {
         const criticalEvents = scheduler.analyzeLoad(events);
         const gaps = scheduler.findGaps(events, now, 14);
 
-        console.log(`[Action] Strategizing study for ${criticalEvents.length} critical events and ${gaps.length} gaps.`);
+        // Action Strategizing
         const plans = await scheduler.strategizeStudy(criticalEvents, gaps);
 
         return { status: 'SUCCESS', data: plans };
@@ -561,8 +563,9 @@ export const migrateIntelligence = async () => {
     }
 };
 
-export const uploadAttachment = async (contentId: string, fileName: string, fileData: string, mimeType: string) => {
+export const uploadAttachment = async (targetId: string, fileName: string, fileData: string, mimeType: string, targetType: 'content' | 'subject' = 'content') => {
     try {
+        const repo = await getAuthenticatedRepository();
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Unauthorized');
@@ -573,66 +576,165 @@ export const uploadAttachment = async (contentId: string, fileName: string, file
         // 10MB Limit check
         if (buffer.length > 10 * 1024 * 1024) throw new Error('El archivo excede el límite de 10MB.');
 
-        const filePath = `${user.id}/${contentId}/${Date.now()}-${fileName}`;
+        // Sanitize filename
+        const sanitizedFileName = fileName
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-zA-Z0-9.-]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
 
-        console.log('--- STORAGE DEBUG ---');
-        console.log('User ID:', user.id);
-        console.log('Target Bucket:', 'academic-files');
-        console.log('File Path:', filePath);
+        const subfolder = targetType === 'content' ? `content/${targetId}` : `subject/${targetId}`;
+        const filePath = `${user.id}/${subfolder}/${Date.now()}-${sanitizedFileName}`;
 
-        const { data, error } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
             .from('academic-files')
             .upload(filePath, buffer, {
                 contentType: mimeType,
                 upsert: true
             });
 
-        if (error) {
-            console.error('Upload Failed Details:', error);
-            throw error;
-        }
+        if (uploadError) throw uploadError;
 
-        // Get public URL
         const { data: { publicUrl } } = supabase.storage
             .from('academic-files')
             .getPublicUrl(filePath);
 
-        // Update content entry
-        const { data: record, error: fetchError } = await supabase
-            .from('academic_content')
-            .select('attachments')
-            .eq('id', contentId)
-            .single();
+        if (targetType === 'content') {
+            // Update academic_content attachments
+            const { data: record, error: fetchError } = await supabase
+                .from('academic_content')
+                .select('attachments')
+                .eq('id', targetId)
+                .single();
 
-        if (fetchError) throw fetchError;
+            if (fetchError) throw fetchError;
 
-        const currentAttachments = record?.attachments || [];
-        const newAttachment = {
-            name: fileName,
-            url: publicUrl,
-            type: mimeType,
-            size: buffer.length
-        };
+            const currentAttachments = record?.attachments || [];
+            const newAttachment = {
+                name: fileName,
+                url: publicUrl,
+                type: mimeType,
+                size: buffer.length
+            };
 
-        const { error: updateError } = await supabase
-            .from('academic_content')
-            .update({
-                attachments: [...currentAttachments, newAttachment]
-            })
-            .eq('id', contentId);
+            const { error: updateError } = await supabase
+                .from('academic_content')
+                .update({
+                    attachments: [...currentAttachments, newAttachment]
+                })
+                .eq('id', targetId);
 
-        if (updateError) {
-            console.error('DB Update Failed:', updateError);
-            throw updateError;
+            if (updateError) throw updateError;
+
+            revalidatePath('/');
+            return { status: 'SUCCESS', data: newAttachment };
+        } else {
+            // Create subject_resource entry
+            const resource: SubjectResource = {
+                subjectId: targetId,
+                name: fileName,
+                url: publicUrl,
+                type: mimeType,
+                size: buffer.length
+            };
+
+            const savedResource = await repo.createSubjectResource(resource);
+            revalidatePath('/');
+            return { status: 'SUCCESS', data: savedResource };
         }
-
-        console.log('--- DB UPDATE SUCCESS ---');
-        console.log('New Attachment Added:', fileName);
-
-        revalidatePath('/');
-        return { status: 'SUCCESS', data: newAttachment };
     } catch (error: any) {
         console.error('Upload Error:', error);
+        return { status: 'ERROR', message: error.message };
+    }
+};
+
+export const getSubjectResources = async (subjectId: string) => {
+    try {
+        const repo = await getAuthenticatedRepository();
+        const resources = await repo.getSubjectResources(subjectId);
+        return { status: 'SUCCESS', data: resources };
+    } catch (error: any) {
+        return { status: 'ERROR', message: error.message };
+    }
+};
+
+export const deleteSubjectResource = async (id: string) => {
+    try {
+        const repo = await getAuthenticatedRepository();
+        // NOTE: In a real app, we should also delete the file from Storage. 
+        // For brevity in this feature, we delete the DB record.
+        await repo.deleteSubjectResource(id);
+        revalidatePath('/');
+        return { status: 'SUCCESS' };
+    } catch (error: any) {
+        return { status: 'ERROR', message: error.message };
+    }
+};
+
+export const addSubjectResourceLink = async (subjectId: string, name: string, url: string) => {
+    try {
+        const repo = await getAuthenticatedRepository();
+        const resource: SubjectResource = {
+            subjectId,
+            name,
+            url,
+            type: 'link',
+            size: 0
+        };
+
+        const savedResource = await repo.createSubjectResource(resource);
+        revalidatePath('/');
+        return { status: 'SUCCESS', data: savedResource };
+    } catch (error: any) {
+        console.error('Add Link Error:', error);
+        return { status: 'ERROR', message: error.message };
+    }
+};
+
+export const askGlobalQuestion = async (question: string) => {
+    try {
+        const repo = await getAuthenticatedRepository();
+        const gemini = new GeminiProvider('heavy'); // Using heavy for global context
+
+        // 1. Fetch relevant context for the next 14 days
+        const now = new Date();
+        const endDate = new Date();
+        endDate.setDate(now.getDate() + 14);
+
+        const startDateStr = now.toISOString().split('T')[0];
+        const endDateStr = endDate.toISOString().split('T')[0];
+
+        const [recentContent, calendarEvents] = await Promise.all([
+            repo.getRecentContent(),
+            repo.getCalendarEvents() // We could optimize this by date range if repo supported it, but getCalendarEvents is fine for now
+        ]);
+
+        // 2. Filter events for the upcoming window
+        const upcomingEvents = calendarEvents.filter(e => {
+            const eDate = e.eventDate.toString();
+            return eDate >= startDateStr && eDate <= endDateStr;
+        });
+
+        // 3. Build context string
+        const contextStr = `
+FECHA ACTUAL: ${now.toLocaleDateString()}
+        
+CONTENIDO ACADÉMICO RECIENTE:
+${recentContent.map(c => `- [${c.subjects?.name || 'N/A'}] ${c.title} (Fecha: ${c.classDate?.toLocaleDateString() || 'N/A'}, Status: ${c.status})`).join('\n')}
+
+PRÓXIMOS EVENTOS Y ENTREGAS (14 DÍAS):
+${upcomingEvents.map(e => `- ${e.title} (Fecha: ${e.eventDate}, Peso: ${e.weight || 'Desconocido'}%)`).join('\n')}
+        `.trim();
+
+        const systemPrompt = GLOBAL_CHAT_PROMPT.replace('{{CONTEXT}}', contextStr);
+
+        // 4. Generate response
+        const response = await gemini.generate(question, systemPrompt, false);
+
+        return { status: 'SUCCESS', data: response.content };
+    } catch (error: any) {
+        console.error('Global Chat Action Error:', error);
         return { status: 'ERROR', message: error.message };
     }
 };

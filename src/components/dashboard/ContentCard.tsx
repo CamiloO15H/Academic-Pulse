@@ -5,21 +5,24 @@ import { AcademicContent } from '../../domain/entities/AcademicContent';
 import { Calendar, ChevronDown, CheckCircle2, Copy, Check, Edit2, Save, X, Link as LinkIcon, Paperclip, Plus, Trash2, MessageCircle, FileText, ImageIcon, ExternalLink, Upload, Loader2 } from 'lucide-react';
 import { updateAcademicContent, uploadAttachment } from '@/app/actions';
 import { toast } from 'sonner';
+import { formatUTC, toISODateUTC, toUTCDate } from '@/application/utils/date';
 
 interface ContentCardProps {
     content: AcademicContent;
     onAskAI?: (content: AcademicContent) => void;
     onDelete?: (id: string) => void;
+    onUpdate?: () => void;
+    className?: string;
 }
 
-const ContentCard: React.FC<ContentCardProps> = ({ content, onAskAI, onDelete }) => {
+const ContentCard: React.FC<ContentCardProps> = ({ content, onAskAI, onDelete, onUpdate, className }) => {
     const [displayContent, setDisplayContent] = useState<AcademicContent>(content);
     const [isExpanded, setIsExpanded] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editedTitle, setEditedTitle] = useState(content.title);
     const [editedDescription, setEditedDescription] = useState(content.description);
-    const [editedClassDate, setEditedClassDate] = useState(content.classDate ? new Date(content.classDate).toISOString().split('T')[0] : '');
+    const [editedClassDate, setEditedClassDate] = useState(toISODateUTC(content.classDate));
     const [editedNotes, setEditedNotes] = useState(content.notes || '');
     const [isQuickEditingNotes, setIsQuickEditingNotes] = useState(false);
     const [isSavingQuickNotes, setIsSavingQuickNotes] = useState(false);
@@ -29,7 +32,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, onAskAI, onDelete })
         setDisplayContent(content);
         setEditedTitle(content.title);
         setEditedDescription(content.description);
-        setEditedClassDate(content.classDate ? new Date(content.classDate).toISOString().split('T')[0] : '');
+        setEditedClassDate(toISODateUTC(content.classDate));
         setEditedNotes(content.notes || '');
     }, [content]);
 
@@ -51,7 +54,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, onAskAI, onDelete })
                 title: editedTitle,
                 description: editedDescription,
                 notes: editedNotes,
-                classDate: editedClassDate ? new Date(editedClassDate) : undefined
+                classDate: editedClassDate ? toUTCDate(editedClassDate) : undefined
             });
 
             if (result.status === 'SUCCESS' && result.data) {
@@ -59,6 +62,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, onAskAI, onDelete })
                 setIsEditing(false);
                 setIsQuickEditingNotes(false);
                 toast.success('Cambios guardados');
+                if (onUpdate) onUpdate();
             } else {
                 toast.error('Error al guardar cambios');
             }
@@ -82,6 +86,7 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, onAskAI, onDelete })
                 setDisplayContent(result.data as AcademicContent);
                 setIsQuickEditingNotes(false);
                 toast.success('Nota guardada');
+                if (onUpdate) onUpdate();
             } else {
                 toast.error('Error al guardar nota');
             }
@@ -205,9 +210,9 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
     };
 
     const getImportanceColor = (level?: number) => {
-        if (!level) return 'border-blue-500/30 text-blue-400';
-        if (level >= 5) return 'border-red-500 text-red-500 bg-red-500/10 shadow-[0_0_15px_rgba(239,68,68,0.2)]';
-        if (level >= 3) return 'border-yellow-500 text-yellow-500 bg-yellow-500/10';
+        if (!level) return 'border-blue-500/30 text-blue-500 bg-blue-500/10';
+        if (level >= 5) return 'border-red-500 text-red-500 bg-red-500/10 shadow-sm';
+        if (level >= 3) return 'border-yellow-500 text-yellow-600 bg-yellow-500/10';
         return 'border-blue-500 text-blue-500 bg-blue-500/10';
     };
 
@@ -219,43 +224,27 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
     };
 
     return (
-        <div className="group relative overflow-hidden rounded-[2rem] border border-white/5 bg-[#0a0a0a] p-1 transition-all duration-500 hover:border-blue-500/30 hover:scale-[1.01] hover:shadow-[0_0_50px_-12px_rgba(59,130,246,0.3)]">
-            <div className="flex flex-col h-full rounded-[1.8rem] bg-[#0d0d0d] p-7 transition-colors group-hover:bg-[#0f0f0f] relative overflow-hidden">
+        <div className={`group relative overflow-hidden rounded-[2rem] border border-border bg-card p-1 transition-all duration-500 hover:border-primary/30 hover:shadow-lg ${className || ''}`}>
+            <div className="flex flex-col h-full rounded-[1.8rem] bg-card p-7 transition-colors relative overflow-hidden">
 
                 {/* Uploading Overlay Animation */}
                 {isUploading && (
-                    <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-500">
+                    <div className="absolute inset-0 z-[100] flex flex-col items-center justify-center bg-background/80 backdrop-blur-md animate-in fade-in duration-500">
                         <div className="relative w-24 h-24 mb-6">
-                            {/* Scanning Outer Ring */}
-                            <div className="absolute inset-0 rounded-full border-2 border-blue-500/20" />
-                            <div className="absolute inset-0 rounded-full border-t-2 border-blue-500 animate-spin transition-all duration-1000" />
-
-                            {/* Inner Pulsing Icon */}
-                            <div className="absolute inset-4 flex items-center justify-center bg-blue-500/10 rounded-full animate-pulse">
-                                <FileText className="w-8 h-8 text-blue-500" />
+                            <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
+                            <div className="absolute inset-0 rounded-full border-t-2 border-primary animate-spin transition-all duration-1000" />
+                            <div className="absolute inset-4 flex items-center justify-center bg-primary/10 rounded-full animate-pulse">
+                                <FileText className="w-8 h-8 text-primary" />
                             </div>
-
-                            {/* Scanning Beam Effect */}
-                            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-blue-400 to-transparent shadow-[0_0_15px_rgba(59,130,246,0.8)] animate-[scan_2s_ease-in-out_infinite]" />
                         </div>
-
                         <div className="text-center space-y-1">
-                            <h4 className="text-xl font-black text-white tracking-tight animate-pulse">
+                            <h4 className="text-xl font-black text-foreground tracking-tight animate-pulse">
                                 PROCESANDO
                             </h4>
-                            <p className="text-[10px] font-bold text-blue-400/70 uppercase tracking-[0.3em]">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em]">
                                 Sincronizando Cerebrito...
                             </p>
                         </div>
-
-                        <style jsx>{`
-                            @keyframes scan {
-                                0%, 100% { top: 0%; opacity: 0; }
-                                20% { opacity: 1; }
-                                80% { opacity: 1; }
-                                100% { top: 100%; opacity: 0; }
-                            }
-                        `}</style>
                     </div>
                 )}
 
@@ -266,38 +255,38 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                        <span className="flex items-center gap-1.5 rounded-full bg-zinc-900 border border-zinc-800 px-4 py-1.5 text-[11px] font-bold text-zinc-400">
+                        <span className="flex items-center gap-1.5 rounded-full bg-secondary border border-border px-4 py-1.5 text-[11px] font-bold text-muted-foreground">
                             {displayContent.sourceType === 'transcription' ? '🎤' : '📄'} {displayContent.contentType || 'Apunte'}
                         </span>
                     </div>
                 </div>
 
                 {/* Actions Floating Bar (Always Visible on Hover) */}
-                <div className="absolute top-6 right-6 flex items-center gap-1 opactiy-0 group-hover:opacity-100 transition-opacity">
+                <div className="absolute top-1/2 -translate-y-1/2 right-4 flex flex-col items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10 translate-x-2 group-hover:translate-x-0">
                     <button
                         onClick={copyToClipboard}
-                        className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-blue-500/50 transition-all hover:scale-110"
+                        className="p-2.5 rounded-xl bg-background border border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-all hover:scale-110"
                         title="Copiar"
                     >
                         {isCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                     </button>
                     <button
                         onClick={() => onAskAI?.(displayContent)}
-                        className="p-2.5 rounded-xl bg-blue-600 border border-blue-500 text-white hover:bg-blue-500 transition-all hover:scale-110 shadow-lg shadow-blue-500/20"
+                        className="p-2.5 rounded-xl bg-primary border border-primary text-primary-foreground hover:bg-primary/90 transition-all hover:scale-110 shadow-lg shadow-primary/20"
                         title="Preguntar a la IA"
                     >
                         <MessageCircle className="w-4 h-4" />
                     </button>
                     <button
                         onClick={() => setIsEditing(!isEditing)}
-                        className={`p-2.5 rounded-xl border transition-all hover:scale-110 ${isEditing ? 'bg-orange-600 border-orange-500 text-white' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'}`}
+                        className={`p-2.5 rounded-xl border transition-all hover:scale-110 ${isEditing ? 'bg-orange-600 border-orange-500 text-white' : 'bg-background border-border text-muted-foreground hover:text-foreground'}`}
                         title="Editar"
                     >
                         {isEditing ? <X className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
                     </button>
                     <button
                         onClick={() => onDelete?.(displayContent.id!)}
-                        className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-red-500 hover:border-red-500/50 transition-all hover:scale-110"
+                        className="p-2.5 rounded-xl bg-background border border-border text-muted-foreground hover:text-destructive hover:border-destructive/50 transition-all hover:scale-110"
                         title="Eliminar"
                     >
                         <Trash2 className="w-4 h-4" />
@@ -312,27 +301,27 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
                                 type="text"
                                 value={editedTitle}
                                 onChange={(e) => setEditedTitle(e.target.value)}
-                                className="w-full text-3xl font-black leading-tight text-white bg-zinc-900 rounded-2xl p-4 border-2 border-blue-500/30 outline-none focus:border-blue-500 transition-all"
+                                className="w-full text-3xl font-black leading-tight text-foreground bg-secondary rounded-2xl p-4 border-2 border-transparent outline-none focus:border-primary transition-all"
                             />
                         ) : (
-                            <h3 className="text-3xl font-black leading-tight text-white group-hover:text-blue-400 transition-colors drop-shadow-md">
+                            <h3 className="text-3xl font-black leading-tight text-foreground group-hover:text-primary transition-colors font-display">
                                 {displayContent.title}
                             </h3>
                         )}
 
                         <div className="flex items-center gap-4 mt-3">
-                            <div className="flex items-center gap-2 text-zinc-500">
-                                <Calendar className="w-4 h-4 text-blue-500" />
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <Calendar className="w-4 h-4 text-primary" />
                                 {isEditing ? (
                                     <input
                                         type="date"
                                         value={editedClassDate}
                                         onChange={(e) => setEditedClassDate(e.target.value)}
-                                        className="text-xs font-bold uppercase tracking-wider bg-transparent outline-none text-zinc-300"
+                                        className="text-xs font-bold uppercase tracking-wider bg-transparent outline-none text-foreground"
                                     />
                                 ) : (
                                     <span className="text-[11px] font-bold uppercase tracking-widest">
-                                        {displayContent.classDate ? new Date(displayContent.classDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Sin fecha'}
+                                        {formatUTC(displayContent.classDate)}
                                     </span>
                                 )}
                             </div>
@@ -340,29 +329,29 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
                     </div>
 
                     <div className="relative">
-                        <div className="absolute -left-4 top-0 bottom-0 w-[2px] bg-gradient-to-b from-blue-500/50 to-transparent" />
+                        <div className="absolute -left-4 top-0 bottom-0 w-[2px] bg-gradient-to-b from-primary/50 to-transparent" />
                         {isEditing ? (
                             <textarea
                                 value={editedDescription}
                                 onChange={(e) => setEditedDescription(e.target.value)}
-                                className="w-full text-base leading-relaxed text-zinc-400 bg-zinc-900 rounded-2xl p-4 border-2 border-blue-500/30 outline-none min-h-[120px] focus:border-blue-500 transition-all italic"
+                                className="w-full text-base leading-relaxed text-foreground bg-secondary rounded-2xl p-4 border-2 border-transparent outline-none min-h-[120px] focus:border-primary transition-all italic"
                                 placeholder="Descripción del blogcito..."
                             />
                         ) : (
-                            <p className="text-base leading-relaxed text-zinc-400 font-medium italic">
+                            <p className="text-base leading-relaxed text-muted-foreground font-medium italic">
                                 "{displayContent.description}"
                             </p>
                         )}
                     </div>
 
-                    {/* Notes Section - New */}
-                    <div className="rounded-2xl bg-zinc-900/50 border border-zinc-800 p-5 space-y-3">
+                    {/* Notes Section */}
+                    <div className="rounded-2xl bg-secondary/30 border border-border p-5 space-y-3">
                         <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-500/70">Mis Notas Personales</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Mis Notas Personales</span>
                             {!isEditing && !isQuickEditingNotes && (
                                 <button
                                     onClick={() => setIsQuickEditingNotes(true)}
-                                    className="p-1 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all"
+                                    className="p-1 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-all"
                                     title="Añadir/Editar Nota"
                                 >
                                     <Plus className="w-3.5 h-3.5" />
@@ -374,7 +363,7 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
                                 <textarea
                                     value={editedNotes}
                                     onChange={(e) => setEditedNotes(e.target.value)}
-                                    className="w-full text-sm text-zinc-300 bg-black/40 rounded-xl p-3 border border-zinc-700 outline-none min-h-[80px] focus:border-blue-500/50"
+                                    className="w-full text-sm text-foreground bg-background rounded-xl p-3 border border-border outline-none min-h-[80px] focus:border-primary/50"
                                     placeholder="Añade notas aquí..."
                                     autoFocus={isQuickEditingNotes}
                                 />
@@ -382,14 +371,14 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
                                     <div className="flex gap-2 justify-end">
                                         <button
                                             onClick={() => setIsQuickEditingNotes(false)}
-                                            className="px-3 py-1.5 text-[10px] font-bold text-zinc-500 hover:text-white transition-colors"
+                                            className="px-3 py-1.5 text-[10px] font-bold text-muted-foreground hover:text-foreground transition-colors"
                                         >
                                             CANCELAR
                                         </button>
                                         <button
                                             onClick={handleQuickSaveNotes}
                                             disabled={isSavingQuickNotes}
-                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-[10px] font-black uppercase tracking-wider hover:bg-blue-500 transition-all disabled:opacity-50"
+                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-wider hover:bg-primary/90 transition-all disabled:opacity-50"
                                         >
                                             {isSavingQuickNotes ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
                                             Guardar
@@ -398,19 +387,19 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
                                 )}
                             </div>
                         ) : (
-                            <p className="text-sm text-zinc-400 leading-relaxed font-medium">
+                            <p className="text-sm text-muted-foreground leading-relaxed font-medium">
                                 {displayContent.notes || 'No has añadido notas para este blogcito aún.'}
                             </p>
                         )}
                     </div>
 
-                    {/* Attachments Section - Redesigned */}
+                    {/* Attachments Section */}
                     <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Documentación & Recursos</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Documentación & Recursos</span>
                             <button
                                 onClick={() => setShowAttachmentOptions(!showAttachmentOptions)}
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-500 text-[10px] font-black uppercase tracking-wider hover:bg-blue-500/20 transition-all"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-secondary border border-border text-muted-foreground text-[10px] font-black uppercase tracking-wider hover:bg-secondary/80 transition-all"
                             >
                                 <Plus className="w-3 h-3" /> Añadir
                             </button>
@@ -421,10 +410,10 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
                                 <button
                                     onClick={() => fileInputRef.current?.click()}
                                     disabled={isUploading}
-                                    className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-zinc-900 border border-zinc-800 hover:border-blue-500/50 group/btn transition-all"
+                                    className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-background border border-border hover:border-primary/50 group/btn transition-all"
                                 >
-                                    {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-blue-400" /> : <Upload className="w-4 h-4 text-zinc-500 group-hover/btn:text-blue-400" />}
-                                    <span className="text-xs font-bold text-zinc-400 group-hover/btn:text-white">Subir Archivo</span>
+                                    {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-primary" /> : <Upload className="w-4 h-4 text-muted-foreground group-hover/btn:text-primary" />}
+                                    <span className="text-xs font-bold text-muted-foreground group-hover/btn:text-foreground">Subir Archivo</span>
                                     <input
                                         type="file"
                                         ref={fileInputRef}
@@ -435,41 +424,41 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
                                 </button>
                                 <button
                                     onClick={() => setShowLinkInput(true)}
-                                    className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-zinc-900 border border-zinc-800 hover:border-blue-500/50 group/btn transition-all"
+                                    className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-background border border-border hover:border-primary/50 group/btn transition-all"
                                 >
-                                    <LinkIcon className="w-4 h-4 text-zinc-500 group-hover/btn:text-blue-400" />
-                                    <span className="text-xs font-bold text-zinc-400 group-hover/btn:text-white">Añadir Link</span>
+                                    <LinkIcon className="w-4 h-4 text-muted-foreground group-hover/btn:text-primary" />
+                                    <span className="text-xs font-bold text-muted-foreground group-hover/btn:text-foreground">Añadir Link</span>
                                 </button>
                             </div>
                         )}
 
                         {showLinkInput && (
-                            <div className="p-4 rounded-2xl bg-blue-600/10 border border-blue-600/30 space-y-3">
+                            <div className="p-4 rounded-2xl bg-secondary border border-border space-y-3">
                                 <input
                                     type="text"
                                     placeholder="Nombre del recurso..."
                                     value={newAttachmentName}
                                     onChange={e => setNewAttachmentName(e.target.value)}
-                                    className="w-full text-xs p-3 rounded-xl bg-black border border-zinc-800 outline-none font-bold text-white placeholder:text-zinc-600"
+                                    className="w-full text-xs p-3 rounded-xl bg-background border border-border outline-none font-bold text-foreground placeholder:text-muted-foreground"
                                 />
                                 <input
                                     type="text"
                                     placeholder="https://..."
                                     value={newAttachmentUrl}
                                     onChange={e => setNewAttachmentUrl(e.target.value)}
-                                    className="w-full text-xs p-3 rounded-xl bg-black border border-zinc-800 outline-none font-bold text-white placeholder:text-zinc-600"
+                                    className="w-full text-xs p-3 rounded-xl bg-background border border-border outline-none font-bold text-foreground placeholder:text-muted-foreground"
                                 />
                                 <div className="flex gap-2">
                                     <button
                                         onClick={handleAddLink}
                                         disabled={isSaving}
-                                        className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-blue-500 shadow-lg shadow-blue-500/20"
+                                        className="flex-1 py-2.5 bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-primary/90 shadow-sm"
                                     >
                                         Guardar Enlace
                                     </button>
                                     <button
                                         onClick={() => setShowLinkInput(false)}
-                                        className="px-4 py-2.5 bg-zinc-800 text-zinc-400 rounded-xl text-[10px] font-black hover:bg-zinc-700"
+                                        className="px-4 py-2.5 bg-background text-muted-foreground rounded-xl text-[10px] font-black hover:bg-secondary"
                                     >
                                         CANCELAR
                                     </button>
@@ -480,9 +469,9 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
                         <div className="flex flex-col gap-2">
                             {displayContent.attachments && displayContent.attachments.length > 0 ? (
                                 displayContent.attachments.map((file, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-3 rounded-2xl bg-zinc-900/40 border border-zinc-800/50 group/att hover:bg-zinc-800/50 hover:border-zinc-700 transition-all">
+                                    <div key={idx} className="flex items-center justify-between p-3 rounded-2xl bg-secondary/30 border border-border group/att hover:bg-secondary/50 transition-all">
                                         <div className="flex items-center gap-3">
-                                            <div className="p-2 rounded-xl bg-zinc-800 text-blue-500">
+                                            <div className="p-2 rounded-xl bg-background text-primary shadow-sm border border-border">
                                                 {getFileIcon(file.type)}
                                             </div>
                                             <div className="flex flex-col">
@@ -490,41 +479,41 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
                                                     href={file.url}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="text-xs font-bold text-zinc-200 hover:text-blue-400 transition-colors flex items-center gap-1"
+                                                    className="text-xs font-bold text-foreground hover:text-primary transition-colors flex items-center gap-1"
                                                 >
                                                     {file.name}
                                                     <ExternalLink className="w-2.5 h-2.5 opacity-50" />
                                                 </a>
-                                                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
                                                     {file.type.split('/')[1] || 'Recurso'} • {file.size ? `${(file.size / 1024 / 1024).toFixed(1)}MB` : 'vínculo'}
                                                 </span>
                                             </div>
                                         </div>
                                         <button
                                             onClick={() => handleRemoveAttachment(idx)}
-                                            className="p-2 rounded-lg hover:bg-red-500/10 text-zinc-600 hover:text-red-500 transition-all opacity-0 group-hover/att:opacity-100"
+                                            className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all opacity-0 group-hover/att:opacity-100"
                                         >
                                             <Trash2 className="w-3.5 h-3.5" />
                                         </button>
                                     </div>
                                 ))
                             ) : (
-                                <p className="text-[10px] italic text-zinc-600 animate-pulse">Sin recursos vinculados.</p>
+                                <p className="text-[10px] italic text-muted-foreground animate-pulse">Sin recursos vinculados.</p>
                             )}
                         </div>
                     </div>
                 </div>
 
                 {/* Study Steps - Collapsible */}
-                <div className="mt-8 border-t border-zinc-800/50 pt-6">
+                <div className="mt-8 border-t border-border pt-6">
                     <button
                         onClick={() => setIsExpanded(!isExpanded)}
                         className="flex w-full items-center justify-between group/expander"
                     >
-                        <span className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-500">
+                        <span className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">
                             Ruta de Aprendizaje
                         </span>
-                        <div className={`p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 transition-all duration-300 ${isExpanded ? 'rotate-180 border-blue-500/50 text-blue-400' : 'text-zinc-600'}`}>
+                        <div className={`p-1.5 rounded-lg bg-background border border-border transition-all duration-300 ${isExpanded ? 'rotate-180 border-primary/50 text-primary' : 'text-muted-foreground'}`}>
                             <ChevronDown className="w-4 h-4" />
                         </div>
                     </button>
@@ -532,11 +521,11 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
                     {isExpanded && displayContent.studySteps && (
                         <div className="mt-6 space-y-4 animate-in fade-in slide-in-from-top-4 duration-500">
                             {displayContent.studySteps.map((step, idx) => (
-                                <div key={idx} className="flex gap-4 items-center p-4 rounded-2xl bg-zinc-900/30 border border-zinc-800 group/step hover:bg-zinc-800/40 transition-all">
-                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-[12px] font-black text-white shadow-lg shadow-blue-500/20 group-hover/step:scale-110 transition-transform">
+                                <div key={idx} className="flex gap-4 items-center p-4 rounded-2xl bg-secondary/20 border border-border group/step hover:bg-secondary/40 transition-all">
+                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-[12px] font-black text-primary-foreground shadow-lg shadow-primary/20 group-hover/step:scale-110 transition-transform">
                                         {idx + 1}
                                     </div>
-                                    <p className="text-sm font-bold text-zinc-300 leading-snug">
+                                    <p className="text-sm font-bold text-foreground leading-snug">
                                         {step}
                                     </p>
                                 </div>
@@ -551,7 +540,7 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
                         <button
                             onClick={handleSave}
                             disabled={isSaving}
-                            className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-blue-500 transition-all shadow-xl shadow-blue-600/20 active:scale-95"
+                            className="flex-1 py-4 bg-primary text-primary-foreground rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 hover:bg-primary/90 transition-all shadow-xl shadow-primary/20 active:scale-95"
                         >
                             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                             {isSaving ? 'Guardando...' : 'Aplicar Cambios'}
@@ -563,7 +552,7 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
                                 setEditedDescription(content.description);
                                 setEditedNotes(content.notes || '');
                             }}
-                            className="px-6 py-4 bg-zinc-900 text-zinc-400 rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] hover:bg-zinc-800 transition-all active:scale-95"
+                            className="px-6 py-4 bg-secondary text-muted-foreground rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] hover:bg-secondary/80 transition-all active:scale-95"
                         >
                             X
                         </button>

@@ -3,7 +3,7 @@ export interface AcademicContent {
     subjectId?: string;
     title: string;
     sourceType: 'transcription' | 'web' | 'video';
-    contentType?: 'parcial' | 'taller' | 'tarea' | 'apunte';
+    contentType?: 'parcial' | 'taller' | 'tarea' | 'apunte' | 'noticia';
     importanceLevel?: number; // 1-5
     deadline?: Date;
     status: 'pending' | 'completed' | 'archived';

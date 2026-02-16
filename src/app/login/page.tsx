@@ -12,6 +12,7 @@ export default function LoginPage() {
     const [isSignUp, setIsSignUp] = useState(false)
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const [confirmPassword, setConfirmPassword] = useState('')
     const [mounted, setMounted] = useState(false)
     const supabase = createClient()
 
@@ -38,6 +39,12 @@ export default function LoginPage() {
 
     const handleAuthAction = async (e: React.FormEvent) => {
         e.preventDefault()
+
+        if (isSignUp && password !== confirmPassword) {
+            alert('Las contraseñas no coinciden')
+            return
+        }
+
         setIsLoading(true)
         try {
             if (isSignUp) {
@@ -49,14 +56,16 @@ export default function LoginPage() {
                     },
                 })
                 if (error) throw error
-                alert('¡Cuenta creada! Revisa tu email para confirmar.')
+                alert('¡Cuenta creada! Revisa tu email para confirmar tu cuenta antes de iniciar sesión.')
+                setIsSignUp(false)
+                setPassword('')
+                setConfirmPassword('')
             } else {
                 const { error } = await supabase.auth.signInWithPassword({
                     email: email.trim(),
                     password,
                 })
                 if (error) throw error
-                // Force a reload to let middleware handle the redirect to /admin if applicable
                 window.location.href = '/'
             }
         } catch (error: any) {
@@ -71,34 +80,65 @@ export default function LoginPage() {
     if (!mounted) return null
 
     return (
-        <div className="flex min-h-screen w-full bg-black selection:bg-blue-500/30 overflow-hidden">
-            {/* Left Side: Form Section */}
-            <div className="flex w-full flex-col justify-center px-8 sm:px-12 lg:w-1/2 xl:px-24 z-10 bg-black/40 backdrop-blur-sm border-r border-white/5">
-                <div className="mx-auto w-full max-w-[400px] space-y-8 animate-in slide-in-from-left duration-700">
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-3 mb-8">
-                            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-transform hover:scale-110">
-                                <span className="text-white font-black text-xl tracking-tighter">AP</span>
+        <div className="flex min-h-screen w-full bg-background font-sans selection:bg-blue-100 selection:text-blue-900 overflow-hidden">
+            {/* Left Side: Form Section - Clean & Geometric */}
+            <div className="flex w-full flex-col justify-center px-8 sm:px-12 lg:w-[45%] xl:px-24 z-10 bg-background border-r border-border/60 relative">
+                {/* Background Pattern for Texture */}
+                <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-[0.4] pointer-events-none" />
+
+                <div className="mx-auto w-full max-w-[420px] space-y-10 animate-in slide-in-from-left duration-700 relative z-20">
+                    {/* Header */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 bg-foreground text-background flex items-center justify-center font-bold text-lg rounded-none shadow-[4px_4px_0px_0px_rgba(0,0,0,0.1)]">
+                                AP
                             </div>
-                            <span className="text-xl font-bold tracking-tight text-white">Academic Pulse</span>
+                            <span className="text-xl font-bold tracking-tight text-foreground">Academic Pulse</span>
                         </div>
-                        <h1 className="text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-                            {isSignUp ? 'Empieza hoy.' : 'Bienvenido.'}
-                        </h1>
-                        <p className="text-lg text-zinc-400">
-                            {isSignUp ? 'Crea tu cuenta académica en segundos.' : 'Inicia sesión para acceder a tu pulso académico.'}
-                        </p>
+                        <div className="space-y-2">
+                            <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl font-display">
+                                {isSignUp ? 'Crear cuenta.' : 'Bienvenido.'}
+                            </h1>
+                            <p className="text-lg text-muted-foreground font-medium">
+                                {isSignUp ? 'Únete a la nueva era académica.' : 'Gestiona tu conocimiento con precisión.'}
+                            </p>
+                        </div>
                     </div>
 
+                    {/* mode switcher tabs */}
+                    <div className="grid grid-cols-2 p-1 bg-secondary/50 rounded-xl border border-border/50">
+                        <button
+                            type="button"
+                            onClick={() => setIsSignUp(false)}
+                            className={cn(
+                                "py-3 text-[10px] font-black uppercase tracking-widest transition-all rounded-lg",
+                                !isSignUp ? "bg-white text-blue-600 shadow-sm border border-border/50" : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            Acceder
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setIsSignUp(true)}
+                            className={cn(
+                                "py-3 text-[10px] font-black uppercase tracking-widest transition-all rounded-lg",
+                                isSignUp ? "bg-white text-blue-600 shadow-sm border border-border/50" : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            Registro
+                        </button>
+                    </div>
+
+                    {/* Auth Form */}
                     <div className="grid gap-6">
-                        <form onSubmit={handleAuthAction} className="grid gap-4">
+                        <form onSubmit={handleAuthAction} className="grid gap-5">
                             <div className="grid gap-2">
-                                <Label htmlFor="email" className="text-sm font-semibold text-zinc-300">
+                                <Label htmlFor="email" className="text-sm font-bold text-foreground/80 uppercase tracking-wider">
                                     Email
                                 </Label>
                                 <Input
                                     id="email"
-                                    placeholder="tu@universidad.edu"
+                                    placeholder="estudiante@universidad.edu"
                                     type="email"
                                     autoCapitalize="none"
                                     autoComplete="email"
@@ -106,17 +146,17 @@ export default function LoginPage() {
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="bg-white/[0.03] border-white/10 h-12 text-white focus:border-blue-500 transition-all placeholder:text-zinc-600 focus:ring-1 focus:ring-blue-500/20"
+                                    className="h-12 bg-white border-2 border-border text-zinc-900 transition-all focus:border-blue-500 focus:ring-0 rounded-md placeholder:text-zinc-400 shadow-sm"
                                 />
                             </div>
                             <div className="grid gap-2">
                                 <div className="flex items-center justify-between">
-                                    <Label htmlFor="password" className="text-sm font-semibold text-zinc-300">
-                                        Contraseña
+                                    <Label htmlFor="password" className="text-sm font-bold text-foreground/80 uppercase tracking-wider">
+                                        {isSignUp ? 'Contraseña' : 'Contraseña'}
                                     </Label>
                                     {!isSignUp && (
-                                        <button type="button" className="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors">
-                                            ¿Olvidaste tu contraseña?
+                                        <button type="button" className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                                            Recuperar acceso
                                         </button>
                                     )}
                                 </div>
@@ -126,22 +166,39 @@ export default function LoginPage() {
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="bg-white/[0.03] border-white/10 h-12 text-white focus:border-blue-500 transition-all focus:ring-1 focus:ring-blue-500/20"
+                                    className="h-12 bg-white border-2 border-border text-zinc-900 transition-all focus:border-blue-500 focus:ring-0 rounded-md shadow-sm"
                                 />
                             </div>
+
+                            {isSignUp && (
+                                <div className="grid gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <Label htmlFor="confirmPassword" className="text-sm font-bold text-foreground/80 uppercase tracking-wider">
+                                        Confirmar Contraseña
+                                    </Label>
+                                    <Input
+                                        id="confirmPassword"
+                                        type="password"
+                                        required
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        className="h-12 bg-white border-2 border-border text-zinc-900 transition-all focus:border-blue-500 focus:ring-0 rounded-md shadow-sm"
+                                    />
+                                </div>
+                            )}
+
                             <Button
                                 type="submit"
-                                className="h-12 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg shadow-[0_4px_20px_rgba(37,99,235,0.3)] transition-all active:scale-[0.98] mt-2 group"
+                                className="h-12 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-md shadow-[0_4px_14px_0_rgba(37,99,235,0.39)] transition-all active:scale-[0.98] mt-2 group"
                                 disabled={isLoading}
                             >
                                 {isLoading ? (
                                     <div className="flex items-center gap-2">
                                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                                        <span>Procesando...</span>
+                                        <span>Procesando</span>
                                     </div>
                                 ) : (
                                     <span className="flex items-center gap-2">
-                                        {isSignUp ? 'Unirse Ahora' : 'Acceder al Panel'}
+                                        {isSignUp ? 'Comenzar Ahora' : 'Ingresar'}
                                         <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                         </svg>
@@ -150,12 +207,12 @@ export default function LoginPage() {
                             </Button>
                         </form>
 
-                        <div className="relative my-4">
+                        <div className="relative my-2">
                             <div className="absolute inset-0 flex items-center">
-                                <span className="w-full border-t border-white/10" />
+                                <span className="w-full border-t border-border" />
                             </div>
-                            <div className="relative flex justify-center text-xs uppercase">
-                                <span className="bg-black px-4 text-zinc-500">O continúa con</span>
+                            <div className="relative flex justify-center text-xs uppercase font-bold tracking-widest">
+                                <span className="bg-background px-4 text-muted-foreground font-bold">O continúa con</span>
                             </div>
                         </div>
 
@@ -164,7 +221,7 @@ export default function LoginPage() {
                             type="button"
                             disabled={isLoading}
                             onClick={handleGoogleLogin}
-                            className="h-12 w-full justify-center gap-3 border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.08] transition-all hover:border-white/20 active:scale-[0.98]"
+                            className="h-12 w-full justify-center gap-3 border-2 border-border bg-white text-zinc-800 hover:bg-slate-50 transition-all active:scale-[0.98] font-semibold rounded-md"
                         >
                             <svg className="h-5 w-5" viewBox="0 0 24 24">
                                 <path
@@ -188,12 +245,12 @@ export default function LoginPage() {
                         </Button>
                     </div>
 
-                    <p className="px-8 text-center text-sm text-zinc-500">
+                    <p className="text-center text-sm font-medium text-muted-foreground">
                         {isSignUp ? '¿Ya tienes una cuenta?' : '¿No tienes cuenta todavía?'}
                         <button
                             type="button"
                             onClick={() => setIsSignUp(!isSignUp)}
-                            className="ml-2 font-bold text-blue-400 hover:text-blue-300 transition-colors underline-offset-4 hover:underline"
+                            className="ml-2 font-bold text-primary hover:text-primary/80 transition-colors hover:underline"
                         >
                             {isSignUp ? 'Inicia Sesión' : 'Crea una aquí'}
                         </button>
@@ -201,51 +258,42 @@ export default function LoginPage() {
                 </div>
 
                 {/* Footer status */}
-                <div className="absolute bottom-8 left-8 sm:left-12 flex items-center gap-4 text-[10px] font-mono text-zinc-600 tracking-wider">
-                    <span className="flex items-center gap-1.5"><div className="h-1 w-1 bg-green-500 rounded-full animate-pulse" /> ENCRIPTACIÓN SSL ACTIVA</span>
-                    <span>V1.1.0-BRUTAL</span>
+                <div className="absolute bottom-8 left-8 sm:left-12 flex items-center gap-4 text-[10px] font-mono text-muted-foreground tracking-wider uppercase">
+                    <span className="flex items-center gap-1.5"><div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" /> Sistema Seguro</span>
+                    <span>Build 2026.11.0</span>
                 </div>
             </div>
 
-            {/* Right Side: Visual Section */}
-            <div className="relative hidden w-1/2 lg:block overflow-hidden">
-                <div className="absolute inset-0 bg-blue-600">
-                    <img
-                        src="/forest_login.jpg"
-                        alt="Academic Pulse Visual"
-                        className="h-full w-full object-cover opacity-60 grayscale hover:scale-110 transition-transform ease-out"
-                        style={{ transitionDuration: '10000ms' }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-l from-black/80 via-black/20 to-transparent" />
+            {/* Right Side: Visual Section - Bold & Immersive */}
+            <div className="relative hidden w-[55%] lg:block overflow-hidden bg-zinc-900">
+                <div className="absolute inset-0 bg-blue-600/20 mix-blend-overlay z-10" />
+                <img
+                    src="https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80"
+                    alt="Minimalist Architecture"
+                    className="h-full w-full object-cover grayscale opacity-80 hover:scale-105 transition-transform duration-[10s] ease-out"
+                />
 
-                    {/* Glowing Orbs for the 'previous color' vibe */}
-                    <div className="absolute top-[10%] right-[10%] h-[500px] w-[500px] rounded-full bg-blue-500/20 blur-[120px] animate-pulse" />
-                    <div className="absolute bottom-[10%] right-[20%] h-[400px] w-[400px] rounded-full bg-indigo-600/20 blur-[100px]" />
-                </div>
+                {/* Content Overlay */}
+                <div className="absolute inset-0 flex flex-col justify-between p-20 z-20 bg-gradient-to-t from-black/80 via-transparent to-transparent">
+                    <div className="w-full flex justify-end">
+                        <div className="h-12 w-12 border border-white/20 rounded-full flex items-center justify-center backdrop-blur-md">
+                            <span className="text-white text-xs font-bold">AP</span>
+                        </div>
+                    </div>
 
-                <div className="absolute inset-0 flex flex-col justify-end p-20 text-white">
                     <div className="max-w-xl animate-in fade-in slide-in-from-bottom duration-1000">
-                        <svg className="h-10 w-10 text-blue-400 mb-6" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M14.017 21L14.017 18C14.017 16.8954 13.1216 16 12.017 16L9.01703 16C7.91246 16 7.01703 16.8954 7.01703 18L7.01703 21M14.017 21L14.017 21.0001M14.017 21H7.01703M17.017 6.00003C17.017 8.76145 14.7784 11 12.017 11C9.25561 11 7.01703 8.76145 7.01703 6.00003C7.01703 3.23861 9.25561 1 12.017 1C14.7784 1 17.017 3.23861 17.017 6.00003Z" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                            <path d="M3.5 12h17M3.5 12l3-3m-3 3l3 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                        <blockquote className="space-y-4">
-                            <p className="text-3xl font-medium leading-tight tracking-tight lg:text-4xl italic font-serif">
-                                &ldquo;La educación es el arma más poderosa que puedes usar para cambiar el mundo.&rdquo;
+                        <blockquote className="space-y-6">
+                            <p className="text-4xl font-medium leading-tight tracking-tight text-white font-display">
+                                "La simplicidad es la máxima sofisticación."
                             </p>
-                            <footer className="flex items-center gap-3">
-                                <div className="h-px w-8 bg-blue-500" />
-                                <cite className="text-sm font-bold uppercase tracking-[0.2em] text-zinc-400 font-sans">
-                                    Nelson Mandela
+                            <footer className="flex items-center gap-4">
+                                <div className="h-px w-12 bg-white/50" />
+                                <cite className="text-sm font-bold uppercase tracking-[0.2em] text-white/70 font-sans not-italic">
+                                    Leonardo da Vinci
                                 </cite>
                             </footer>
                         </blockquote>
                     </div>
-                </div>
-
-                {/* Decorative elements */}
-                <div className="absolute top-12 right-12 text-[10px] font-mono text-white/20 vertical-rl tracking-[0.5em] hidden xl:block">
-                    PULSO ACADÉMICO // SISTEMA DE SEGURIDAD // 2026
                 </div>
             </div>
         </div>

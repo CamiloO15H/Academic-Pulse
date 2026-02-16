@@ -130,7 +130,7 @@ export class SmartScheduler {
 
         if (assignments.length === 0) return [];
 
-        console.log(`[SmartScheduler] Batched ${assignments.length} study blocks. Requesting AI strategy...`);
+        // Batched study blocks
 
         // 2. Phase: Generation (Batch AI Call)
         try {

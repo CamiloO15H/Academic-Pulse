@@ -6,47 +6,67 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
+    /* Premium Neutral - Light Theme */
+    --background: 210 20% 98%; /* Platinum / Off-White */
+    --foreground: 222 47% 11%; /* Deep Gunmetal */
+    
+    --card: 0 0% 100%; /* Pure White */
     --card-foreground: 222 47% 11%;
+    
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 221 83% 53%;
+    
+    --primary: 221 83% 53%; /* Classic Vibrant Blue */
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
+    
+    --secondary: 210 20% 94%; /* Light Grey */
     --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
+    
+    --muted: 210 20% 94%;
     --muted-foreground: 215 16% 47%;
-    --accent: 210 40% 96%;
+    
+    --accent: 210 20% 94%;
     --accent-foreground: 222 47% 11%;
+    
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
+    
     --border: 214 32% 91%;
     --input: 214 32% 91%;
     --ring: 221 83% 53%;
-    --radius: 1rem;
+    
+    --radius: 0.5rem; /* sharper, more professional radius */
+    
     --font-primary: 'Inter', sans-serif;
     --font-display: 'Outfit', sans-serif;
   }
 
   .dark {
-    --background: 222 47% 11%;
+    /* Premium Deep Slate - Dark Theme */
+    --background: 222 47% 11%; /* Deep Navy */
     --foreground: 210 40% 98%;
-    --card: 222 47% 11%;
+    
+    --card: 222 47% 13%;
     --card-foreground: 210 40% 98%;
+    
     --popover: 222 47% 11%;
     --popover-foreground: 210 40% 98%;
+    
     --primary: 217 91% 60%;
     --primary-foreground: 222 47% 11%;
+    
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
+    
     --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
+    
     --accent: 217 33% 17%;
     --accent-foreground: 210 40% 98%;
+    
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
+    
     --border: 217 33% 17%;
     --input: 217 33% 17%;
     --ring: 224 76% 48%;
@@ -59,32 +79,106 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
     font-family: var(--font-primary);
-    background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.05), transparent),
-      radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.05), transparent),
-      #f8fafc;
+    /* Clean, neutral background - no gradients as requested for purely neutral feel */
+    background-color: hsl(var(--background));
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  .font-display {
+  h1, h2, h3, h4, .font-display {
     font-family: var(--font-display);
   }
 }
 
+/* Glassmorphism - Refined for Light Mode */
 .glass-morphism {
-  background: rgba(255, 255, 255, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
 }
 
 .dark .glass-morphism {
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: none;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--secondary));
+  border-radius: 20px;
+  border: 3px solid hsl(var(--background));
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Native Date Picker Premium Styling */
+input[type="date"] {
+    position: relative;
+    appearance: none;
+    -webkit-appearance: none;
+    min-height: 1.5em;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+    background: transparent;
+    bottom: 0;
+    color: transparent;
+    cursor: pointer;
+    height: auto;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: auto;
+    z-index: 10;
+}
+
+input[type="date"]::-webkit-datetime-edit {
+    display: flex;
+    padding: 0;
+    font-weight: 700;
+}
+
+input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+}
+
+input[type="date"]::-webkit-datetime-edit-text,
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field {
+    color: #a1a1aa; /* zinc-400 */
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+}
+
+input[type="date"]:focus::-webkit-datetime-edit-text,
+input[type="date"]:focus::-webkit-datetime-edit-month-field,
+input[type="date"]:focus::-webkit-datetime-edit-day-field,
+input[type="date"]:focus::-webkit-datetime-edit-year-field {
+    color: #ffffff;
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--secondary)) hsl(var(--background));
 }
 
 /* Utilities */

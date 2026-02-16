@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS academic_content (
   subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   source_type TEXT NOT NULL CHECK (source_type IN ('transcription', 'web', 'video')),
-  content_type TEXT CHECK (content_type IN ('parcial', 'taller', 'tarea', 'apunte')),
+  content_type TEXT CHECK (content_type IN ('parcial', 'taller', 'tarea', 'apunte', 'noticia')),
   importance_level INT DEFAULT 1 CHECK (importance_level BETWEEN 1 AND 5),
   deadline TIMESTAMP WITH TIME ZONE,
   status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'archived')),
@@ -35,6 +35,10 @@ CREATE TABLE IF NOT EXISTS academic_content (
   key_insights TEXT[],
   study_steps TEXT[],
   class_date TIMESTAMP WITH TIME ZONE, -- New in Feature 7
+  attachments JSONB DEFAULT '[]'::jsonb, -- New in Phase 6
+  notes TEXT,
+  transcription TEXT, -- Raw content for contextual chat
+  google_event_id TEXT, -- For Google Calendar Sync
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -45,6 +49,9 @@ CREATE POLICY "Users can create their own content" ON academic_content FOR INSER
 CREATE POLICY "Users can view their own content" ON academic_content FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can update their own content" ON academic_content FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete their own content" ON academic_content FOR DELETE USING (auth.uid() = user_id);
+
+CREATE INDEX IF NOT EXISTS idx_academic_content_user_subject ON academic_content(user_id, subject_id);
+CREATE INDEX IF NOT EXISTS idx_subject_resources_subject ON subject_resources(subject_id);
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_content_subject ON academic_content(subject_id);

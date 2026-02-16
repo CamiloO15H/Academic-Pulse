@@ -17,14 +17,14 @@ export class GeminiProvider implements LLMProvider {
 
         // Randomize start index to ensure distribution across stateless Server Action calls
         this.currentKeyIndex = Math.floor(Math.random() * apiKeys.length);
-        console.log(`[GeminiProvider] Initialized [${pool.toUpperCase()}] pool with ${apiKeys.length} keys. Starting at Random Index: ${this.currentKeyIndex}`);
+        // pool initialized
     }
 
     private rotateKey() {
         const keysVar = this.pool === 'heavy' ? (process.env.GOOGLE_API_KEY_HEAVY || process.env.GOOGLE_API_KEY) : process.env.GOOGLE_API_KEY;
         const apiKeys = (keysVar || "").split(',').map(k => k.trim()).filter(Boolean);
         this.currentKeyIndex = (this.currentKeyIndex + 1) % apiKeys.length;
-        console.log(`[GeminiProvider] Rotated [${this.pool.toUpperCase()}] to API Key index ${this.currentKeyIndex}`);
+        // key rotated
     }
 
     async generate(prompt: string, systemPrompt?: string, isJson = true, files?: FilePart[]): Promise<LLMResponse> {
@@ -46,7 +46,7 @@ export class GeminiProvider implements LLMProvider {
         ];
 
         for (const modelName of modelsToTry) {
-            console.log(`[GeminiProvider] 🚀 Attempting with model: ${modelName}`);
+            // attempting with model
             let hardLimitCount = 0;
 
             // Try all keys in a cycle for this model
@@ -64,7 +64,7 @@ export class GeminiProvider implements LLMProvider {
                 const genAI = new GoogleGenerativeAI(currentKey);
                 const model = genAI.getGenerativeModel({ model: modelName });
 
-                console.log(`[GeminiProvider] 🔑 Using Key Index ${this.currentKeyIndex} for model ${modelName}`);
+                // using key index
 
                 const maxRetries = 3;
                 const baseRetryDelay = 3000; // 3s base for 429/quota issues
@@ -81,7 +81,7 @@ export class GeminiProvider implements LLMProvider {
                         const text = response.text();
 
                         // MANDATORY RATE LIMITER DELAY (1s) to respect free tier RPM
-                        console.log(`[GeminiProvider] ✅ Success with ${modelName}. cooling down for 1s...`);
+                        // success
                         await new Promise(resolve => setTimeout(resolve, 1000));
 
                         if (!isJson) return { content: text };

@@ -72,32 +72,32 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, conte
     };
 
     return (
-        <div className="fixed inset-0 z-[100] flex justify-end">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-black/20 backdrop-blur-sm animate-in fade-in duration-300"
+                className="absolute inset-0 bg-background/60 backdrop-blur-md animate-in fade-in duration-500"
                 onClick={onClose}
             />
 
-            {/* Sidebar */}
-            <div className="relative w-full max-w-md h-full bg-white/80 dark:bg-gray-900/90 backdrop-blur-2xl border-l border-white/20 dark:border-gray-800/50 shadow-2xl flex flex-col animate-in slide-in-from-right duration-500 ease-out">
+            {/* Modal Container */}
+            <div className="relative w-full max-w-3xl h-[85vh] bg-card/90 backdrop-blur-2xl border border-white/10 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] rounded-[3rem] overflow-hidden flex flex-col animate-in zoom-in-95 fade-in duration-500 ease-out">
 
                 {/* Header */}
-                <div className="p-6 border-b border-gray-100 dark:border-gray-800/50 flex items-center justify-between bg-gradient-to-r from-blue-600/5 to-purple-600/5">
+                <div className="p-6 border-b border-border flex items-center justify-between bg-gradient-to-r from-primary/5 to-purple-600/5">
                     <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                            <Sparkles className="w-5 h-5 text-white" />
+                        <div className="h-10 w-10 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
+                            <Sparkles className="w-5 h-5 text-primary-foreground" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-wider">Tutor IA</h3>
-                            <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 truncate max-w-[200px]">
+                            <h3 className="text-sm font-black text-foreground uppercase tracking-wider">Tutor IA</h3>
+                            <p className="text-[10px] font-bold text-primary truncate max-w-[200px]">
                                 {content.title}
                             </p>
                         </div>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                        className="p-2 rounded-xl bg-secondary text-muted-foreground hover:text-foreground transition-colors"
                     >
                         <X className="w-5 h-5" />
                     </button>
@@ -107,12 +107,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, conte
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide">
                     {messages.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center space-y-4 px-4">
-                            <Bot className="w-12 h-12 text-blue-200 dark:text-gray-700" />
+                            <Bot className="w-12 h-12 text-muted-foreground/30" />
                             <div className="space-y-2">
-                                <h4 className="text-sm font-black text-gray-900 dark:text-white uppercase tracking-widest">
+                                <h4 className="text-sm font-black text-foreground uppercase tracking-widest">
                                     ¿En qué puedo ayudarte?
                                 </h4>
-                                <p className="text-xs font-bold text-gray-400 leading-relaxed">
+                                <p className="text-xs font-bold text-muted-foreground leading-relaxed">
                                     Pregúntame sobre cualquier concepto mencionado en esta clase.
                                     Tengo acceso a la transcripción y al resumen principal.
                                 </p>
@@ -126,14 +126,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, conte
                             >
                                 <div className={`flex gap-3 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                                     <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 shadow-sm ${msg.role === 'user'
-                                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-500'
-                                        : 'bg-blue-600 text-white'
+                                        ? 'bg-secondary text-muted-foreground'
+                                        : 'bg-primary text-primary-foreground'
                                         }`}>
                                         {msg.role === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                                     </div>
                                     <div className={`p-4 rounded-[2rem] text-sm leading-relaxed overflow-hidden ${msg.role === 'user'
-                                        ? 'bg-gray-900 text-white rounded-tr-none'
-                                        : 'bg-blue-50 dark:bg-blue-900/20 text-gray-800 dark:text-gray-200 rounded-tl-none border border-blue-100/50 dark:border-blue-800/30'
+                                        ? 'bg-foreground text-background rounded-tr-none'
+                                        : 'bg-primary/10 text-foreground rounded-tl-none border border-primary/20'
                                         }`}>
                                         {msg.text.split('\n').map((line, i) => (
                                             <p key={i} className={i > 0 ? 'mt-2' : ''}>{line}</p>
@@ -146,14 +146,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, conte
                     {isLoading && (
                         <div className="flex justify-start animate-in fade-in duration-300">
                             <div className="flex gap-3 max-w-[85%]">
-                                <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center shrink-0">
-                                    <Bot className="w-4 h-4 text-white" />
+                                <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center shrink-0">
+                                    <Bot className="w-4 h-4 text-primary-foreground" />
                                 </div>
-                                <div className="p-4 rounded-[2rem] rounded-tl-none bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100/30 dark:border-blue-800/20">
+                                <div className="p-4 rounded-[2rem] rounded-tl-none bg-primary/10 border border-primary/20">
                                     <div className="flex gap-1">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-bounce" style={{ animationDelay: '0ms' }} />
-                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-bounce" style={{ animationDelay: '150ms' }} />
-                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-bounce" style={{ animationDelay: '300ms' }} />
+                                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
                                     </div>
                                 </div>
                             </div>
@@ -163,7 +163,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, conte
                 </div>
 
                 {/* Input Area */}
-                <div className="p-6 bg-gray-50/50 dark:bg-gray-800/30 border-t border-gray-100 dark:border-gray-800/50">
+                <div className="p-6 bg-secondary/30 border-t border-border">
                     <div className="relative group">
                         <textarea
                             value={input}
@@ -175,18 +175,18 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({ isOpen, onClose, conte
                                 }
                             }}
                             placeholder="Haz una pregunta..."
-                            className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-3xl py-4 pl-6 pr-14 text-sm font-medium focus:outline-none focus:ring-4 focus:ring-blue-600/10 focus:border-blue-600 transition-all resize-none max-h-32 min-h-[56px] dark:placeholder-gray-500"
+                            className="w-full bg-background border border-border rounded-3xl py-4 pl-6 pr-14 text-sm font-medium focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all resize-none max-h-32 min-h-[56px] placeholder:text-muted-foreground"
                             rows={1}
                         />
                         <button
                             onClick={handleSend}
                             disabled={!input.trim() || isLoading}
-                            className="absolute right-2 top-2 h-10 w-10 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/20 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 transition-all"
+                            className="absolute right-2 top-2 h-10 w-10 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100 transition-all"
                         >
                             {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                         </button>
                     </div>
-                    <p className="mt-3 text-[10px] text-center font-black uppercase tracking-widest text-gray-400">
+                    <p className="mt-3 text-[10px] text-center font-black uppercase tracking-widest text-muted-foreground">
                         AI Tutor Contextual • Academic Pulse
                     </p>
                 </div>

@@ -32,13 +32,13 @@ export async function GET(request: Request) {
             // Check if user has a username
             const { data: { user } } = await supabase.auth.getUser()
             if (user) {
-                const { data: profile } = await supabase
+                const { data: profile, error: profileError } = await supabase
                     .from('profiles')
                     .select('username')
                     .eq('id', user.id)
                     .single()
 
-                if (!profile?.username) {
+                if (profileError || !profile?.username) {
                     return NextResponse.redirect(`${origin}/onboarding`)
                 }
 

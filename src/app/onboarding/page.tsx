@@ -30,11 +30,15 @@ export default function OnboardingPage() {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) throw new Error('No authenticado')
 
-            // Update profile
+            // Upsert profile to handle missing records
             const { error: updateError } = await supabase
                 .from('profiles')
-                .update({ username: username, updated_at: new Date().toISOString() })
-                .eq('id', user.id)
+                .upsert({
+                    id: user.id,
+                    username: username,
+                    full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'id' })
 
             if (updateError) {
                 if (updateError.code === '23505') { // Unique violation

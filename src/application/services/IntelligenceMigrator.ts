@@ -13,11 +13,11 @@ export class IntelligenceMigrator {
     }
 
     async migrate(userId: string): Promise<{ contentUpdated: number, eventsUpdated: number }> {
-        console.log('[IntelligenceMigrator] Starting migration for user:', userId);
+        // Migration started
 
         // 1. Audit Academic Content
         const incompleteContent = await this.repo.getIncompleteAcademicContent();
-        console.log(`[IntelligenceMigrator] Found ${incompleteContent.length} incomplete content items.`);
+        // Incomplete content found
 
         let contentUpdated = 0;
         let eventsUpdatedCount = 0;

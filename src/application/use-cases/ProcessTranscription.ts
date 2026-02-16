@@ -24,7 +24,7 @@ export class ProcessTranscription {
         - Source Type es "transcription".
         `;
 
-        console.log('--- Analyzing transcription with AI for SaaS ---');
+        // Analyzing transcription
         const response = await this.llmProvider.generate(contextualPrompt, SYSTEM_PROMPT);
 
         let extractedData: any;
@@ -66,7 +66,7 @@ export class ProcessTranscription {
             // In a real scenario, we might look up the subject by name here using repository
         }
 
-        console.log('--- Syncing with Supabase (Primary Authenticated) ---');
+        // Syncing with Supabase
         // Repository instance already has auth client injected in actions.ts
         const savedContent = await this.supabaseRepository.createContent(content);
 

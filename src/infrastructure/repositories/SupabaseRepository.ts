@@ -3,6 +3,7 @@ import { AcademicContent } from '@/domain/entities/AcademicContent';
 import { Subject } from '@/domain/entities/Subject';
 import { CalendarEvent } from '@/domain/entities/CalendarEvent';
 import { UserSettings } from '@/domain/entities/UserSettings';
+import { SubjectResource } from '@/domain/entities/SubjectResource';
 
 export class SupabaseRepository {
     private supabase: SupabaseClient;
@@ -54,6 +55,53 @@ export class SupabaseRepository {
         if (error) throw new Error(`Failed to delete subject: ${error.message}`);
     }
 
+    // --- Subject Resources (Baúl) ---
+    async getSubjectResources(subjectId: string): Promise<SubjectResource[]> {
+        const { data, error } = await this.supabase
+            .from('subject_resources')
+            .select('*')
+            .eq('subject_id', subjectId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw new Error(`Failed to fetch subject resources: ${error.message}`);
+        return (data || []).map(item => ({
+            id: item.id,
+            userId: item.user_id,
+            subjectId: item.subject_id,
+            name: item.name,
+            url: item.url,
+            type: item.type,
+            size: item.size,
+            createdAt: item.created_at
+        }));
+    }
+
+    async createSubjectResource(resource: SubjectResource): Promise<SubjectResource> {
+        const { data, error } = await this.supabase
+            .from('subject_resources')
+            .insert([{
+                subject_id: resource.subjectId,
+                name: resource.name,
+                url: resource.url,
+                type: resource.type,
+                size: resource.size
+            }])
+            .select()
+            .single();
+
+        if (error) throw new Error(`Failed to create subject resource: ${error.message}`);
+        return data;
+    }
+
+    async deleteSubjectResource(id: string): Promise<void> {
+        const { error } = await this.supabase
+            .from('subject_resources')
+            .delete()
+            .eq('id', id);
+
+        if (error) throw new Error(`Failed to delete subject resource: ${error.message}`);
+    }
+
     // --- Academic Content ---
     async createContent(content: AcademicContent): Promise<AcademicContent> {
         const { data, error } = await this.supabase
@@ -76,11 +124,40 @@ export class SupabaseRepository {
                 transcription: content.transcription, // Phase 7
                 google_event_id: content.googleEventId // Phase 9
             }])
-            .select()
+            .select('id')
             .single();
 
-        if (error) throw new Error(`Failed to save content: ${error.message}`);
-        return data;
+        if (error || !data) throw new Error(`Failed to save content: ${error?.message || 'Data is null'}`);
+
+        const { data: savedData, error: fetchError } = await this.supabase
+            .from('academic_content')
+            .select(`
+                id, 
+                subjectId:subject_id, 
+                title, 
+                sourceType:source_type, 
+                contentType:content_type, 
+                importanceLevel:importance_level, 
+                deadline, 
+                status, 
+                description, 
+                summary, 
+                keyInsights:key_insights, 
+                studySteps:study_steps, 
+                classDate:class_date, 
+                attachments, 
+                notes,
+                googleEventId:google_event_id,
+                created_at
+            `)
+            .eq('id', data.id)
+            .single();
+
+        if (fetchError || !savedData) {
+            throw new Error(`Failed to retrieve saved content: ${fetchError?.message || 'Data is null'}`);
+        }
+
+        return savedData as any;
     }
 
     async updateContent(id: string, updates: Partial<AcademicContent>): Promise<AcademicContent> {
@@ -114,17 +191,16 @@ export class SupabaseRepository {
                 classDate:class_date, 
                 attachments, 
                 notes,
-                transcription,
                 googleEventId:google_event_id,
                 created_at
             `)
             .single();
 
-        if (error) throw new Error(`Failed to update content: ${error.message}`);
+        if (error || !data) throw new Error(`Failed to update content: ${error?.message || 'Data is null'}`);
         return {
-            ...data,
-            classDate: data.classDate ? new Date(data.classDate as any) : undefined,
-            deadline: data.deadline ? new Date(data.deadline as any) : undefined
+            ...data as any,
+            classDate: (data as any).classDate ? new Date((data as any).classDate) : undefined,
+            deadline: (data as any).deadline ? new Date((data as any).deadline) : undefined
         } as AcademicContent;
     }
 
@@ -150,16 +226,13 @@ export class SupabaseRepository {
                 deadline, 
                 status, 
                 description, 
-                summary, 
-                keyInsights:key_insights, 
-                studySteps:study_steps, 
                 classDate:class_date, 
                 attachments, 
                 googleEventId:google_event_id,
                 created_at
             `)
             .eq('subject_id', subjectId)
-            .order('created_at', { ascending: false });
+            .order('class_date', { ascending: false }); // Sort by class date first for better flow
 
         if (error) throw new Error(`Failed to fetch content: ${error.message}`);
         return (data || []).map(item => ({
@@ -168,6 +241,7 @@ export class SupabaseRepository {
             deadline: item.deadline ? new Date(item.deadline as any) : undefined
         } as any));
     }
+
 
     async getRecentContent(): Promise<any[]> {
         const { data, error } = await this.supabase
@@ -182,9 +256,6 @@ export class SupabaseRepository {
                 deadline, 
                 status, 
                 description, 
-                summary, 
-                keyInsights:key_insights, 
-                studySteps:study_steps, 
                 classDate:class_date, 
                 attachments, 
                 googleEventId:google_event_id,
@@ -192,7 +263,7 @@ export class SupabaseRepository {
                 subjects(name, color, icon)
             `)
             .order('created_at', { ascending: false })
-            .limit(20);
+            .limit(100);
 
         if (error) throw new Error(`Failed to fetch recent content: ${error.message}`);
         return (data || []).map(item => ({
