@@ -14,11 +14,13 @@ import FocusTimerWidget from './widgets/FocusTimerWidget';
 import SubjectActivityWidget from './widgets/SubjectActivityWidget';
 import RadarWidget from './widgets/RadarWidget';
 import ChatWidget from './widgets/ChatWidget';
+import EmailWidget from './widgets/EmailWidget';
+
 
 
 import { Subject } from '@/domain/entities/Subject';
 import { AcademicContent } from '@/domain/entities/AcademicContent';
-import { Calendar, Sparkles, Plus, StickyNote, Timer, LayoutGrid, X, Bot } from 'lucide-react';
+import { Calendar, Sparkles, Plus, StickyNote, Timer, LayoutGrid, X, Bot, Mail } from 'lucide-react';
 import ContentCard from './ContentCard';
 
 interface DashboardGridProps {
@@ -84,6 +86,12 @@ const WIDGET_REGISTRY: Record<string, {
         icon: <Sparkles className="w-4 h-4 text-red-500" />,
         defaultLayout: { w: 4, h: 5, minW: 3, minH: 4 },
         component: RadarWidget
+    },
+    email: {
+        title: "Bandeja Outlook",
+        icon: <Mail className="w-4 h-4 text-blue-500" />,
+        defaultLayout: { w: 4, h: 4, minW: 3, minH: 3 },
+        component: EmailWidget
     }
 };
 
@@ -267,20 +275,18 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
                 <div className="flex items-center gap-2 text-zinc-500">
                     <LayoutGrid className="w-4 h-4" />
                     <span className="text-[11px] font-black uppercase tracking-[0.2em]">
-                        {isMosaicMode ? 'Mosaico de Conocimiento' : 'Panel de Control'}
+                        {isMosaicMode ? 'Mosaico de Conocimiento' : 'Tablero'}
                     </span>
                 </div>
 
                 <div className="relative">
-                    {!isMosaicMode && (
-                        <button
-                            onClick={() => setShowAddMenu(!showAddMenu)}
-                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all font-bold text-[10px] uppercase tracking-wider"
-                        >
-                            <Plus className="w-3.5 h-3.5" />
-                            Añadir Widget
-                        </button>
-                    )}
+                    <button
+                        onClick={() => setShowAddMenu(!showAddMenu)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all font-bold text-[10px] uppercase tracking-wider"
+                    >
+                        <Plus className="w-3.5 h-3.5" />
+                        Añadir Widget
+                    </button>
 
                     {showAddMenu && (
                         <div className="absolute right-0 mt-2 w-64 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl p-2 z-[100] animate-in fade-in slide-in-from-top-2">

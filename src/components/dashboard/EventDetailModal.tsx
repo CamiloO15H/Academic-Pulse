@@ -7,20 +7,34 @@ import { toast } from 'sonner';
 interface EventDetailModalProps {
     item: any; // Can be AcademicContent or CalendarEvent
     subjects: any[];
+    isOpen: boolean;
     onClose: () => void;
     onSave: (id: string, updates: any, type: 'academic' | 'manual') => Promise<void>;
     onDelete: (id: string, type: 'academic' | 'manual') => Promise<void>;
 }
 
-const EventDetailModal: React.FC<EventDetailModalProps> = ({ item, subjects, onClose, onSave, onDelete }) => {
-    const isAcademic = item.type === 'academic';
+const EventDetailModal: React.FC<EventDetailModalProps> = ({ item, subjects, isOpen, onClose, onSave, onDelete }) => {
+    const isAcademic = item?.type === 'academic';
     const [isEditing, setIsEditing] = useState(false);
-    const [title, setTitle] = useState(item.title);
-    const [description, setDescription] = useState(isAcademic ? (item.description || item.transcription || '') : (item.description || ''));
-    const [eventDate, setEventDate] = useState(item.eventDate ? item.eventDate.substring(0, 10) : new Date().toISOString().substring(0, 10));
-    const [subjectId, setSubjectId] = useState(item.subjectId || '');
+    const [title, setTitle] = useState(item?.title || '');
+    const [description, setDescription] = useState(item ? (isAcademic ? (item.description || item.transcription || '') : (item.description || '')) : '');
+    const [eventDate, setEventDate] = useState(item?.eventDate ? item.eventDate.substring(0, 10) : new Date().toISOString().substring(0, 10));
+    const [subjectId, setSubjectId] = useState(item?.subjectId || '');
     const [isSaving, setIsSaving] = useState(false);
-    const isOptimistic = item.id && item.id.toString().startsWith('temp-');
+
+    // Sync state when item changes
+    React.useEffect(() => {
+        if (item) {
+            setTitle(item.title);
+            setDescription(isAcademic ? (item.description || item.transcription || '') : (item.description || ''));
+            setEventDate(item.eventDate ? item.eventDate.substring(0, 10) : new Date().toISOString().substring(0, 10));
+            setSubjectId(item.subjectId || '');
+        }
+    }, [item, isAcademic]);
+
+    const isOptimistic = item?.id && item?.id?.toString().startsWith('temp-');
+
+    if (!isOpen || !item) return null;
 
     const handleSave = async () => {
         setIsSaving(true);

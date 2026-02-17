@@ -8,12 +8,13 @@ interface SubjectGridProps {
     onSelectSubject: (subjectId: string) => void;
     onEditSubject: (subject: Subject) => void;
     onDeleteSubject: (subjectId: string) => void;
+    onAddSubject?: () => void;
     selectedSubjectId?: string;
 }
 
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, Plus } from 'lucide-react';
 
-const SubjectGrid: React.FC<SubjectGridProps> = ({ subjects, onSelectSubject, onEditSubject, onDeleteSubject, selectedSubjectId }) => {
+const SubjectGrid: React.FC<SubjectGridProps> = ({ subjects, onSelectSubject, onEditSubject, onDeleteSubject, onAddSubject, selectedSubjectId }) => {
     // Helper to render icon or emoji
     const renderIcon = (iconStr?: string) => {
         if (!iconStr) return '📚';
@@ -109,6 +110,22 @@ const SubjectGrid: React.FC<SubjectGridProps> = ({ subjects, onSelectSubject, on
                     </div>
                 </div>
             ))}
+
+            {/* Add Subject Card */}
+            {onAddSubject && (
+                <button
+                    onClick={onAddSubject}
+                    className="group relative flex flex-col items-center justify-center gap-4 rounded-3xl p-8 border-2 border-dashed border-zinc-900 bg-zinc-900/10 hover:bg-zinc-900/20 hover:border-zinc-800 transition-all duration-500 min-h-[220px]"
+                >
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-zinc-900 border border-zinc-800 text-zinc-600 group-hover:text-primary group-hover:scale-110 group-hover:border-primary/50 transition-all duration-500">
+                        <Plus className="w-8 h-8" />
+                    </div>
+                    <div className="text-center">
+                        <h3 className="text-lg font-black text-zinc-500 group-hover:text-foreground transition-colors uppercase tracking-tighter">Nueva Materia</h3>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 mt-1">Añadir Terminal</p>
+                    </div>
+                </button>
+            )}
         </div>
     );
 };

@@ -122,14 +122,16 @@ const ContentCard: React.FC<ContentCardProps> = ({ content, onAskAI, onDelete, o
                 const result = await uploadAttachment(content.id!, file.name, base64, file.type);
 
                 if (result.status === 'SUCCESS' && result.data) {
-                    // Update local attachments immediately
+                    const newAttachment = result.data as any;
                     setDisplayContent(prev => ({
                         ...prev,
-                        attachments: [...(prev.attachments || []), result.data as any]
+                        attachments: [...(prev.attachments || []), newAttachment]
                     }));
                     toast.success('Archivo subido correctamente');
+                    if (onUpdate) await onUpdate();
                     setShowAttachmentOptions(false);
                 } else {
+                    console.error('[Upload Error]', result.message);
                     toast.error(result.message || 'Error al subir archivo');
                 }
             };
@@ -243,7 +245,10 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
     };
 
     return (
-        <div className={`group relative overflow-hidden rounded-[2rem] border border-border bg-card p-1 transition-all duration-500 hover:border-primary/30 hover:shadow-lg ${className || ''}`}>
+        <div
+            onPaste={handlePaste}
+            className={`group relative overflow-hidden rounded-[2rem] border border-border bg-card p-1 transition-all duration-500 hover:border-primary/30 hover:shadow-lg ${className || ''}`}
+        >
             <div className="flex flex-col h-full rounded-[1.8rem] bg-card p-7 transition-colors relative overflow-hidden">
 
                 {/* Uploading Overlay Animation */}
@@ -432,6 +437,14 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
                                     disabled={isUploading}
                                     className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-background border border-border hover:border-primary/50 group/btn transition-all"
                                 >
+                                    {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-primary" /> : <ImageIcon className="w-4 h-4 text-primary" />}
+                                    <span className="text-xs font-bold text-muted-foreground group-hover/btn:text-foreground">Subir Imagen</span>
+                                </button>
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={isUploading}
+                                    className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-background border border-border hover:border-primary/50 group/btn transition-all"
+                                >
                                     {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-primary" /> : <Upload className="w-4 h-4 text-muted-foreground group-hover/btn:text-primary" />}
                                     <span className="text-xs font-bold text-muted-foreground group-hover/btn:text-foreground">Subir Archivo</span>
                                     <input
@@ -444,10 +457,10 @@ ${content.studySteps?.map((s, i) => `${i + 1}. ${s}`).join('\n')}
                                 </button>
                                 <button
                                     onClick={() => setShowLinkInput(true)}
-                                    className="flex items-center justify-center gap-2 p-3 rounded-2xl bg-background border border-border hover:border-primary/50 group/btn transition-all"
+                                    className="col-span-2 flex items-center justify-center gap-2 p-3 rounded-2xl bg-background border border-border hover:border-primary/50 group/btn transition-all"
                                 >
                                     <LinkIcon className="w-4 h-4 text-muted-foreground group-hover/btn:text-primary" />
-                                    <span className="text-xs font-bold text-muted-foreground group-hover/btn:text-foreground">Añadir Link</span>
+                                    <span className="text-xs font-bold text-muted-foreground group-hover/btn:text-foreground">Añadir Link Externo</span>
                                 </button>
                             </div>
                         )}

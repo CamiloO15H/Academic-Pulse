@@ -209,22 +209,30 @@ export const deleteAcademicContent = async (id: string) => {
 
 // --- Calendar Event Actions ---
 
-export const getCalendarEvents = async () => {
+/**
+ * Fetches calendar events.
+ * @param options - Optional configuration to exclude academic content (useful to avoid redundant fetches in the dashboard)
+ */
+export const getCalendarEvents = async (options: { excludeAcademic?: boolean } = {}) => {
     try {
         const repo = await getAuthenticatedRepository();
         const events = await repo.getCalendarEvents();
-        const contents = await repo.getRecentContent();
 
-        // Map Academic Content to Event format for the calendar
-        const academicEvents = contents.map(c => ({
-            id: c.id,
-            title: c.title,
-            description: c.description,
-            eventDate: c.classDate?.toISOString() || c.created_at,
-            isAllDay: true,
-            color: c.subjects?.color || '#3B82F6',
-            type: 'academic' as const
-        }));
+        let academicEvents: any[] = [];
+        if (!options.excludeAcademic) {
+            const contents = await repo.getRecentContent();
+
+            // Map Academic Content to Event format for the calendar
+            academicEvents = contents.map(c => ({
+                id: c.id,
+                title: c.title,
+                description: c.description,
+                eventDate: c.classDate?.toISOString() || c.created_at,
+                isAllDay: true,
+                color: c.subjects?.color || '#3B82F6',
+                type: 'academic' as const
+            }));
+        }
 
         const manualEvents = events.map(e => ({
             ...e,
