@@ -110,6 +110,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
     const [activeWidgets, setActiveWidgets] = useState<{ id: string, type: string }[]>([]);
     const [layouts, setLayouts] = useState<any>({});
     const [showAddMenu, setShowAddMenu] = useState(false);
+    const [isLayoutLoaded, setIsLayoutLoaded] = useState(false);
 
     const { width, containerRef, mounted: widthMounted } = useContainerWidth({
         measureBeforeMount: true
@@ -137,6 +138,7 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
             // Explicitly reset layouts to avoid leakage from previous context
             setLayouts({});
         }
+        setIsLayoutLoaded(true);
     }, [contextId, isMosaicMode]);
 
     const layoutTimerRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -165,12 +167,12 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
         };
     }, []);
 
-    // Persist layouts to localStorage when they change (only if not empty)
+    // Persist layouts to localStorage when they change (only if not empty AND loaded)
     useEffect(() => {
-        if (layouts && Object.keys(layouts).length > 0) {
+        if (isLayoutLoaded && layouts && Object.keys(layouts).length > 0) {
             localStorage.setItem(`layouts_${contextId}`, JSON.stringify(layouts));
         }
-    }, [layouts, contextId]);
+    }, [layouts, contextId, isLayoutLoaded]);
 
     const addWidget = (type: string) => {
         const widgetDef = WIDGET_REGISTRY[type];
@@ -327,6 +329,8 @@ const DashboardGrid: React.FC<DashboardGridProps> = ({
                     width={width}
                     onLayoutChange={onLayoutChange}
                     margin={[16, 16]}
+                    // @ts-ignore: draggableHandle is valid but missing in type definition
+                    draggableHandle=".drag-handle"
                 >
                     {gridItems}
                 </ResponsiveGridLayout>
