@@ -5,6 +5,7 @@ import { AcademicContent } from '@/domain/entities/AcademicContent';
 import ContentCard from '@/components/dashboard/ContentCard';
 import { Sparkles, Brain, AlertCircle, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getColombiaNow } from '@/application/utils/date';
 
 interface RadarWidgetProps {
     subjects: any[];
@@ -25,8 +26,8 @@ const RadarWidget: React.FC<RadarWidgetProps> = ({
 }) => {
     // Filter logic for the Radar
     const prioritizedContent = React.useMemo(() => {
-        const now = new Date();
-        const eightDaysLater = new Date();
+        const now = getColombiaNow();
+        const eightDaysLater = getColombiaNow();
         eightDaysLater.setDate(now.getDate() + 8);
 
         const fifteenDaysLater = new Date();
@@ -102,7 +103,7 @@ const RadarWidget: React.FC<RadarWidgetProps> = ({
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
                 {prioritizedContent.map((item) => {
-                    const isUrgent = item.deadline && (new Date(item.deadline).getTime() - new Date().getTime()) < 48 * 60 * 60 * 1000;
+                    const isUrgent = item.deadline && (new Date(item.deadline).getTime() - getColombiaNow().getTime()) < 48 * 60 * 60 * 1000;
                     const isCritical = isUrgent || (item.importanceLevel && item.importanceLevel >= 5);
 
                     return (
@@ -145,7 +146,7 @@ const RadarWidget: React.FC<RadarWidgetProps> = ({
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

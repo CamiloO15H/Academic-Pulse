@@ -5,6 +5,7 @@ import { Calendar, Plus, X } from 'lucide-react';
 import { Subject } from '../../domain/entities/Subject';
 import { toast } from 'sonner';
 import { processAcademicTranscription } from '../../app/actions';
+import { getColombiaNow } from '@/application/utils/date';
 
 interface BlogcitoFormProps {
     subjects: Subject[];
@@ -24,7 +25,7 @@ const BlogcitoForm: React.FC<BlogcitoFormProps> = ({
     isInternal = false
 }) => {
     const [transcription, setTranscription] = useState('');
-    const [classDate, setClassDate] = useState(new Date().toISOString().split('T')[0]);
+    const [classDate, setClassDate] = useState(getColombiaNow().toISOString().split('T')[0]);
     const [isProcessing, setIsProcessing] = useState(false);
 
     const handleProcess = async () => {

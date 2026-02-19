@@ -4,6 +4,7 @@ import { Subject } from '@/domain/entities/Subject';
 import { CalendarEvent } from '@/domain/entities/CalendarEvent';
 import { UserSettings } from '@/domain/entities/UserSettings';
 import { SubjectResource } from '@/domain/entities/SubjectResource';
+import { getColombiaNow } from '@/application/utils/date';
 
 export class SupabaseRepository {
     private supabase: SupabaseClient;
@@ -415,7 +416,7 @@ export class SupabaseRepository {
             .from('user_settings')
             .upsert({
                 google_sync_enabled: enabled,
-                updated_at: new Date().toISOString()
+                updated_at: getColombiaNow().toISOString()
             }, { onConflict: 'user_id' });
 
         if (error) throw new Error(`Failed to update settings: ${error.message}`);

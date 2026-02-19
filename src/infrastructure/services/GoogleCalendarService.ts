@@ -1,6 +1,7 @@
 import { google } from 'googleapis';
 import { AcademicContent } from '../../domain/entities/AcademicContent';
 import { CalendarEvent } from '../../domain/entities/CalendarEvent';
+import { getColombiaNow } from '@/application/utils/date';
 
 export class GoogleCalendarService {
     private oauth2Client;
@@ -29,7 +30,7 @@ export class GoogleCalendarService {
 
         if (type === 'academic') {
             const content = event as AcademicContent;
-            const date = content.classDate || new Date();
+            const date = content.classDate || getColombiaNow();
             // Default Academic items to All-Day if no specific time logic yet
             const dateStr = date.toISOString().split('T')[0];
             start = { date: dateStr };

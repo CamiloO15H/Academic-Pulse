@@ -5,6 +5,7 @@ import { SubjectResource } from '../../domain/entities/SubjectResource';
 import { getSubjectResources, deleteSubjectResource, uploadAttachment, addSubjectResourceLink } from '@/app/actions';
 import { FileText, ImageIcon, Link as LinkIcon, Paperclip, ExternalLink, Trash2, Plus, Download, Loader2, Upload, FileCode, FileArchive, X, Folder, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { getColombiaNow, COLOMBIA_TIMEZONE } from '@/application/utils/date';
 
 interface SubjectVaultProps {
     subjectId: string;
@@ -88,7 +89,7 @@ const SubjectVault: React.FC<SubjectVaultProps> = ({ subjectId }) => {
                     url: '#',
                     type: file.type,
                     size: file.size,
-                    createdAt: new Date().toISOString(),
+                    createdAt: getColombiaNow().toISOString(),
                     isOptimistic: true
                 };
                 setResources(prev => [tempResource, ...prev]);
@@ -144,7 +145,7 @@ const SubjectVault: React.FC<SubjectVaultProps> = ({ subjectId }) => {
             name: linkName,
             url: linkUrl,
             type: 'text/link',
-            createdAt: new Date().toISOString(),
+            createdAt: getColombiaNow().toISOString(),
             isOptimistic: true
         };
 
@@ -347,7 +348,7 @@ const SubjectVault: React.FC<SubjectVaultProps> = ({ subjectId }) => {
 
                             <div className="mt-4 pt-4 border-t border-zinc-800 flex items-center justify-between">
                                 <span className="text-[9px] font-bold text-zinc-600">
-                                    Añadido: {resource.createdAt ? new Date(resource.createdAt).toLocaleDateString() : 'N/A'}
+                                    Añadido: {resource.createdAt ? new Date(resource.createdAt).toLocaleDateString('es-ES', { timeZone: COLOMBIA_TIMEZONE }) : 'N/A'}
                                 </span>
                                 <div className="flex -space-x-2">
                                     {/* Decoration */}

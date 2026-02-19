@@ -7,6 +7,7 @@ import {
 } from './actions';
 import { Toaster, toast } from 'sonner';
 import { createClient } from '@/infrastructure/database/supabaseClient';
+import { getColombiaNow } from '@/application/utils/date';
 
 // Hooks
 import { useDashboard } from '@/hooks/useDashboard';
@@ -193,7 +194,7 @@ export default function DashboardClient({
             )}
 
             <ChatSidebar isOpen={dashboard.isChatOpen} onClose={() => dashboard.setIsChatOpen(false)} content={dashboard.activeChatContent} />
-            <MobileFAB onAddSubject={() => subjects.setIsAddSubjectModalOpen(true)} onAddEvent={() => { events.setQuickAddDate(new Date().toISOString().split('T')[0]); events.setIsAddEventModalOpen(true); }} />
+            <MobileFAB onAddSubject={() => subjects.setIsAddSubjectModalOpen(true)} onAddEvent={() => { events.setQuickAddDate(getColombiaNow().toISOString().split('T')[0]); events.setIsAddEventModalOpen(true); }} />
             <Toaster position="top-right" theme="light" richColors closeButton />
 
             {dashboard.isProcessing && (

@@ -5,6 +5,7 @@ import { AcademicContent } from '../../domain/entities/AcademicContent';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Plus, Sparkles, Loader2 } from 'lucide-react';
 import { suggestStudyBlocks } from '@/app/actions';
 import { StudySuggestionSection } from './StudySuggestionSection';
+import { getColombiaNow, COLOMBIA_TIMEZONE } from '@/application/utils/date';
 
 interface StudyCalendarProps {
     contents: AcademicContent[];
@@ -15,7 +16,7 @@ interface StudyCalendarProps {
 }
 
 const StudyCalendar: React.FC<StudyCalendarProps> = ({ contents, events = [], onItemClick, onAddEvent, onDayClick }) => {
-    const [currentDate, setCurrentDate] = useState(new Date());
+    const [currentDate, setCurrentDate] = useState(getColombiaNow());
     const [isSuggesting, setIsSuggesting] = useState(false);
     const [suggestions, setSuggestions] = useState<any[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -180,7 +181,7 @@ const StudyCalendar: React.FC<StudyCalendarProps> = ({ contents, events = [], on
                         Estudio Agendado
                     </h3>
                     <p className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mt-1">
-                        {currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+                        {currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric', timeZone: COLOMBIA_TIMEZONE })}
                     </p>
                 </div>
 
@@ -198,7 +199,7 @@ const StudyCalendar: React.FC<StudyCalendarProps> = ({ contents, events = [], on
                         Smart Suggest
                     </button>
                     <button
-                        onClick={() => setCurrentDate(new Date())}
+                        onClick={() => setCurrentDate(getColombiaNow())}
                         className="px-4 py-2 rounded-xl bg-secondary text-foreground text-[10px] font-black uppercase tracking-widest border border-border hover:bg-secondary/80 transition-colors"
                     >
                         Hoy

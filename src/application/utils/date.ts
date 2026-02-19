@@ -1,13 +1,22 @@
+export const COLOMBIA_TIMEZONE = 'America/Bogota';
+
 /**
- * Academic dates (clases, notes) are stored as "YYYY-MM-DD" but often processed as UTC midnight.
- * To avoid the "one day prior" shift in local timezones (e.g., -05:00), we must handle them as UTC.
+ * Returns the current date and time in Colombia's timezone.
  */
+export function getColombiaNow(): Date {
+    // Current time in UTC
+    const now = new Date();
+    // Use Intl.DateTimeFormat to get the string in Colombia's time, then parse back
+    // This is a common way to get "now" in a specific timezone using native JS
+    const colombiaString = now.toLocaleString('en-US', { timeZone: COLOMBIA_TIMEZONE });
+    return new Date(colombiaString);
+}
 
 /**
  * Parses a "YYYY-MM-DD" string or a Date object into a Date object at UTC midnight.
  */
 export function toUTCDate(input: string | Date | undefined): Date {
-    if (!input) return new Date();
+    if (!input) return getColombiaNow();
 
     if (input instanceof Date) {
         return new Date(Date.UTC(input.getFullYear(), input.getMonth(), input.getDate()));
@@ -19,7 +28,8 @@ export function toUTCDate(input: string | Date | undefined): Date {
 }
 
 /**
- * Formats a Date object as a human-readable string in UTC timezone.
+ * Formats a Date object as a human-readable string.
+ * Defaults to Colombia timezone but can be overridden.
  * Example: "12 feb 2026"
  */
 export function formatUTC(date: Date | string | undefined, options: Intl.DateTimeFormatOptions = {}): string {
@@ -30,7 +40,7 @@ export function formatUTC(date: Date | string | undefined, options: Intl.DateTim
         day: 'numeric',
         month: 'short',
         year: 'numeric',
-        timeZone: 'UTC',
+        timeZone: COLOMBIA_TIMEZONE, // Default to Colombia
         ...options
     });
 }

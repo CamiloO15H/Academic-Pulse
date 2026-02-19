@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/infrastructure/database/supabaseClient'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { getColombiaNow } from '@/application/utils/date'
 // We might not have Input/Label, so using standard HTML or checking next
 // standard HTML fallback for now to avoid errors if missing
 
@@ -37,7 +38,7 @@ export default function OnboardingPage() {
                     id: user.id,
                     username: username,
                     full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
-                    updated_at: new Date().toISOString()
+                    updated_at: getColombiaNow().toISOString()
                 }, { onConflict: 'id' })
 
             if (updateError) {

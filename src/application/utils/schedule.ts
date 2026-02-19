@@ -1,7 +1,9 @@
+import { getColombiaNow } from './date';
+
 export type Subject = 'Arquitectura' | 'Estadística' | 'Metodología' | 'Admin. de BD' | 'Gestión' | 'Inv. Operaciones e Informática Avanzada' | 'Seminario' | 'BD' | 'General';
 
 export function getSubjectBySchedule(): Subject {
-    const now = new Date();
+    const now = getColombiaNow();
     const day = now.getDay(); // 0 = Sunday, 1 = Monday, ...
     const hour = now.getHours();
 

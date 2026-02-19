@@ -2,6 +2,7 @@ import { SupabaseRepository } from '@/infrastructure/repositories/SupabaseReposi
 import { GeminiProvider } from '@/infrastructure/llm/GeminiProvider';
 import { INTELLIGENCE_MIGRATION_PROMPT } from '@/application/agents/prompts';
 import { CalendarEvent } from '@/domain/entities/CalendarEvent';
+import { getColombiaNow } from '@/application/utils/date';
 
 export class IntelligenceMigrator {
     private repo: SupabaseRepository;

@@ -12,7 +12,7 @@ import { GoogleCalendarService } from '@/infrastructure/services/GoogleCalendarS
 import { SmartScheduler } from '@/application/services/SmartScheduler';
 import { IntelligenceMigrator } from '@/application/services/IntelligenceMigrator';
 import { SubjectResource } from '@/domain/entities/SubjectResource';
-import { toUTCDate } from '@/application/utils/date';
+import { toUTCDate, getColombiaNow } from '@/application/utils/date';
 
 // ... Dependency Injection Helper ...
 
@@ -437,7 +437,7 @@ export const scanSyllabus = async (text: string, subjectId: string, files?: { da
     try {
         // scanSyllabus started
         const gemini = new GeminiProvider('heavy');
-        const currentYear = new Date().getFullYear().toString();
+        const currentYear = getColombiaNow().getFullYear().toString();
         const semesterStartDate = '03 de febrero de 2026';
         const prompt = SYLLABUS_SCANNER_PROMPT
             .replace('{{YEAR}}', currentYear)
@@ -508,8 +508,8 @@ export const suggestStudyBlocks = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Unauthorized');
 
-        const now = new Date();
-        const endDate = new Date();
+        const now = getColombiaNow();
+        const endDate = getColombiaNow();
         endDate.setDate(now.getDate() + 14); // 2 week window
 
         const startDateStr = now.toISOString().split('T')[0];
@@ -706,8 +706,8 @@ export const askGlobalQuestion = async (question: string) => {
         const gemini = new GeminiProvider('heavy'); // Using heavy for global context
 
         // 1. Fetch relevant context for the next 14 days
-        const now = new Date();
-        const endDate = new Date();
+        const now = getColombiaNow();
+        const endDate = getColombiaNow();
         endDate.setDate(now.getDate() + 14);
 
         const startDateStr = now.toISOString().split('T')[0];

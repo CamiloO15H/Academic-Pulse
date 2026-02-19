@@ -3,6 +3,7 @@ import { SupabaseRepository } from '@/infrastructure/repositories/SupabaseReposi
 import { SYSTEM_PROMPT } from '@/application/agents/prompts';
 import { AcademicContent } from '@/domain/entities/AcademicContent';
 import { getSubjectBySchedule } from '@/application/utils/schedule';
+import { getColombiaNow } from '@/application/utils/date';
 
 export class ProcessTranscription {
     constructor(
@@ -53,7 +54,7 @@ export class ProcessTranscription {
             summary: extractedData.summary || [],
             keyInsights: extractedData.key_insights || [],
             studySteps: extractedData.study_steps || [],
-            classDate: classDate || new Date(), // Feature 7: Use provided class date or fallback to now
+            classDate: classDate || getColombiaNow(), // Feature 7: Use provided class date or fallback to now
             transcription: transcription // Phase 7: Save raw transcription for context
         };
 

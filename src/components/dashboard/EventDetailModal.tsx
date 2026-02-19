@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Calendar, BookOpen, Edit2, Trash2, Save, FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { getColombiaNow, COLOMBIA_TIMEZONE } from '@/application/utils/date';
 
 interface EventDetailModalProps {
     item: any; // Can be AcademicContent or CalendarEvent
@@ -18,7 +19,7 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({ item, subjects, isO
     const [isEditing, setIsEditing] = useState(false);
     const [title, setTitle] = useState(item?.title || '');
     const [description, setDescription] = useState(item ? (isAcademic ? (item.description || item.transcription || '') : (item.description || '')) : '');
-    const [eventDate, setEventDate] = useState(item?.eventDate ? item.eventDate.substring(0, 10) : new Date().toISOString().substring(0, 10));
+    const [eventDate, setEventDate] = useState(item?.eventDate ? item.eventDate.substring(0, 10) : getColombiaNow().toISOString().substring(0, 10));
     const [subjectId, setSubjectId] = useState(item?.subjectId || '');
     const [isSaving, setIsSaving] = useState(false);
 
@@ -27,7 +28,7 @@ const EventDetailModal: React.FC<EventDetailModalProps> = ({ item, subjects, isO
         if (item) {
             setTitle(item.title);
             setDescription(isAcademic ? (item.description || item.transcription || '') : (item.description || ''));
-            setEventDate(item.eventDate ? item.eventDate.substring(0, 10) : new Date().toISOString().substring(0, 10));
+            setEventDate(item.eventDate ? item.eventDate.substring(0, 10) : getColombiaNow().toISOString().substring(0, 10));
             setSubjectId(item.subjectId || '');
         }
     }, [item, isAcademic]);
